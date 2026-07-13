@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Скрываем элементы до инициализации Alpine.js, чтобы не мелькали модалки/меню */
+[x-cloak] {
+    display: none !important;
+}
+
+/* Тонкий скроллбар в стиле Discord */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-thumb {
+    background-color: #1a1a1e;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+    background-color: transparent;
+}
