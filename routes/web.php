@@ -10,7 +10,11 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::get('/', function () {
-    return redirect()->route('login');
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+
+    return view('welcome');
 });
 // Стандартные маршруты аутентификации (auth::routes или Breeze/Jetstream)
  require __DIR__.'/auth.php';
