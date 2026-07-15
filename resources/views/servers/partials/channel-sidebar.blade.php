@@ -4,12 +4,18 @@
     {{-- Шапка с названием сервера --}}
     <div class="h-12 flex items-center justify-between px-4 shadow-sm border-b border-black/20 flex-shrink-0">
         <h1 class="font-semibold truncate">{{ $server->name }}</h1>
-        <button
-            x-data
-            @click="navigator.clipboard.writeText('{{ $server->invite_code }}'); $dispatch('notify', 'Код приглашения скопирован')"
-            class="text-gray-400 hover:text-white text-xs" title="Скопировать код приглашения">
-            📋
-        </button>
+        <div class="flex items-center gap-3">
+            @php $myRole = $server->members->firstWhere('id', Auth::id())?->pivot->role; @endphp
+            @if (in_array($myRole, ['owner', 'admin']))
+                <a href="{{ route('servers.edit', $server) }}" class="text-gray-400 hover:text-white text-xs" title="Настройки сервера">⚙️</a>
+            @endif
+            <button
+                x-data
+                @click="navigator.clipboard.writeText('{{ $server->invite_code }}'); $dispatch('notify', 'Код приглашения скопирован')"
+                class="text-gray-400 hover:text-white text-xs" title="Скопировать код приглашения">
+                📋
+            </button>
+        </div>
     </div>
 
     {{-- Список категорий и каналов --}}

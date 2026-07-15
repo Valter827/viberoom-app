@@ -13,7 +13,8 @@
         </h3>
         <div class="space-y-2">
             @foreach ($server->members as $member)
-                <div class="flex items-center gap-2 px-1">
+                <div class="flex items-center gap-2 px-1 py-1 rounded hover:bg-[#35373c] cursor-pointer"
+                     onclick="openProfile({{ $member->id }}, event)">
                     <div class="relative">
                         <img src="{{ $member->avatar_url }}" class="w-8 h-8 rounded-full {{ $member->isOnline() ? '' : 'opacity-50' }}">
                         <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#2B2D31] {{ $member->isOnline() ? 'bg-green-500' : 'bg-gray-500' }}"></span>
@@ -42,4 +43,5 @@
         </div>
     </div>
 </div>
+@include('components.profile-popover')
 @endsection

@@ -40,6 +40,16 @@ class ServerController extends Controller
     }
 
     /**
+     * Страница настроек сервера (название, иконка, описание) — доступна owner/admin.
+     */
+    public function edit(Server $server): View
+    {
+        $this->authorizeAdmin($server);
+
+        return view('servers.edit', ['server' => $server]);
+    }
+
+    /**
      * Сохранить новый сервер: создатель автоматически становится owner
      * и первым участником, плюс создаётся дефолтная категория и текстовый канал.
      */
@@ -105,6 +115,7 @@ class ServerController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
+            'description' => ['nullable', 'string', 'max:300'],
             'icon' => ['nullable', 'image', 'max:2048'],
         ]);
 

@@ -26,6 +26,9 @@ class ProfileController extends Controller
             'name' => ['required', 'string', 'max:50'],
             'status' => ['required', 'in:online,idle,dnd,offline'],
             'avatar' => ['nullable', 'image', 'max:2048'],
+            'bio' => ['nullable', 'string', 'max:190'],
+            'pronouns' => ['nullable', 'string', 'max:40'],
+            'banner_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ]);
 
         if ($request->hasFile('avatar')) {

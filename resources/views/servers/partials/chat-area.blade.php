@@ -25,7 +25,8 @@
         <div class="flex-1 overflow-y-auto px-4 py-3" x-ref="messageList">
             <template x-for="msg in messages" :key="msg.id">
                 <div class="flex items-start gap-3 py-1.5 hover:bg-white/[0.02] px-2 -mx-2 rounded">
-                    <img :src="msg.user.avatar_url" class="w-10 h-10 rounded-full flex-shrink-0 mt-0.5">
+                    <img :src="msg.user.avatar_url" class="w-10 h-10 rounded-full flex-shrink-0 mt-0.5 cursor-pointer"
+                         @click="openProfile(msg.user.id, $event)">
                     <div class="min-w-0">
                         <div class="flex items-baseline gap-2">
                             <span class="font-medium text-sm" x-text="msg.user.name"></span>
