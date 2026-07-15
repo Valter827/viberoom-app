@@ -13,8 +13,11 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
+        'birthdate',
+        'marketing_opt_in',
         'avatar_path',
         'status',
     ];
@@ -30,6 +33,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'last_seen_at' => 'datetime',
+            'birthdate' => 'date',
+            'marketing_opt_in' => 'boolean',
         ];
     }
 
