@@ -84,24 +84,59 @@
 </section>
 
 <script>
-    // Alpine-компонент чата: подписка на Echo + отправка сообщений через fetch()
+    // Alpine-компонент чата: получение новых сообщений через polling + отправка через fetch()
     function chatChannel({ channelId, currentUserId, initialMessages }) {
         return {
             channelId,
             messages: initialMessages,
             content: '',
             attachment: null,
+            lastId: initialMessages.length ? initialMessages[initialMessages.length - 1].id : 0,
+            pollTimer: null,
 
             init() {
                 this.scrollToBottom();
-                if (!this.channelId || !window.Echo) return;
+                if (!this.channelId) return;
 
-                // Подписка на приватный канал вебсокетов channel.{id}
-                window.Echo.private('channel.' + this.channelId)
-                    .listen('.message.sent', (e) => {
-                        this.messages.push(e);
-                        this.$nextTick(() => this.scrollToBottom());
+                // Реал-тайм без вебсокета: раз в 3 секунды спрашиваем сервер,
+                // нет ли новых сообщений — работает на любом хостинге без
+                // постоянно запущенного процесса (Reverb и т.п. не нужны).
+                this.pollTimer = setInterval(() => this.poll(), 3000);
+
+                // Останавливаем опрос, когда вкладка свёрнута/уходим со страницы —
+                // чтобы не грузить сервер зря.
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        clearInterval(this.pollTimer);
+                    } else {
+                        this.poll();
+                        this.pollTimer = setInterval(() => this.poll(), 3000);
+                    }
+                });
+            },
+
+            async poll() {
+                try {
+                    const res = await fetch(`/channels/${this.channelId}/messages/poll?after=${this.lastId}`, {
+                        headers: { 'Accept': 'application/json' },
                     });
+                    if (!res.ok) return;
+                    const newMessages = await res.json();
+                    if (!newMessages.length) return;
+
+                    const existingIds = new Set(this.messages.map(m => m.id));
+                    let scrolled = false;
+                    for (const msg of newMessages) {
+                        if (!existingIds.has(msg.id)) {
+                            this.messages.push(msg);
+                            scrolled = true;
+                        }
+                        this.lastId = Math.max(this.lastId, msg.id);
+                    }
+                    if (scrolled) this.$nextTick(() => this.scrollToBottom());
+                } catch (e) {
+                    // сеть моргнула — просто попробуем на следующем тике
+                }
             },
 
             async send() {
@@ -122,11 +157,14 @@
 
                 if (res.ok) {
                     const message = await res.json();
-                    // добавляем своё сообщение локально сразу (toOthers() не шлёт его нам обратно)
+                    // добавляем своё сообщение локально сразу
                     this.messages.push(message);
+                    this.lastId = Math.max(this.lastId, message.id);
                     this.content = '';
                     this.attachment = null;
                     this.$nextTick(() => this.scrollToBottom());
+                } else {
+                    alert('Не удалось отправить сообщение. Попробуйте ещё раз.');
                 }
             },
 

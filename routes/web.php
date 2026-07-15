@@ -49,4 +49,5 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/servers/{server}/channels/{channel}', [ChannelController::class, 'show'])->name('channels.show');
     // --- Сообщения (AJAX, JSON-ответ) ---
     Route::post('/channels/{channel}/messages', [MessageController::class, 'store'])->name('messages.store');
+    Route::get('/channels/{channel}/messages/poll', [MessageController::class, 'poll'])->name('messages.poll');
 });
