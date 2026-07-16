@@ -59,4 +59,37 @@ class Server extends Model
             ? asset('storage/' . $this->icon_path)
             : 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=2B2D31&color=fff';
     }
+
+    public function bans()
+    {
+        return $this->hasMany(ServerBan::class);
+    }
+
+    /**
+     * Роль пользователя на этом сервере (owner|admin|moderator|member) или null, если не участник.
+     */
+    public function roleOf(?int $userId): ?string
+    {
+        if (! $userId) {
+            return null;
+        }
+
+        return $this->members()->where('user_id', $userId)->value('role');
+    }
+
+    /**
+     * Может ли пользователь модерировать (удалять чужие сообщения, закреплять, кикать/банить member'ов).
+     */
+    public function canModerate(?int $userId): bool
+    {
+        return in_array($this->roleOf($userId), ['owner', 'admin', 'moderator'], true);
+    }
+
+    /**
+     * Может ли пользователь управлять сервером (настройки, роли, баны) — только owner/admin.
+     */
+    public function canManage(?int $userId): bool
+    {
+        return in_array($this->roleOf($userId), ['owner', 'admin'], true);
+    }
 }

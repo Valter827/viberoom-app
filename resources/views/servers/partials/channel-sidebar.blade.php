@@ -6,6 +6,10 @@
         <h1 class="font-semibold truncate">{{ $server->name }}</h1>
         <div class="flex items-center gap-3">
             @php $myRole = $server->members->firstWhere('id', Auth::id())?->pivot->role; @endphp
+            @include('components.mentions-bell')
+            @if (in_array($myRole, ['owner', 'admin', 'moderator']))
+                <a href="{{ route('servers.edit', $server) }}" class="text-gray-400 hover:text-white text-xs" title="Участники и настройки">👥</a>
+            @endif
             @if (in_array($myRole, ['owner', 'admin']))
                 <a href="{{ route('servers.edit', $server) }}" class="text-gray-400 hover:text-white text-xs" title="Настройки сервера">⚙️</a>
             @endif

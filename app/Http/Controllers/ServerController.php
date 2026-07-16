@@ -40,13 +40,22 @@ class ServerController extends Controller
     }
 
     /**
-     * Страница настроек сервера (название, иконка, описание) — доступна owner/admin.
+     * Страница настроек сервера (название, иконка, описание + управление участниками) —
+     * доступна owner/admin (полностью) и moderator (только вкладка участников).
      */
     public function edit(Server $server): View
     {
-        $this->authorizeAdmin($server);
+        $role = $server->roleOf(Auth::id());
+        abort_unless(in_array($role, ['owner', 'admin', 'moderator']), 403, 'Недостаточно прав.');
 
-        return view('servers.edit', ['server' => $server]);
+        $server->load(['bans.user']);
+        $roleOrder = ['owner' => 0, 'admin' => 1, 'moderator' => 2, 'member' => 3];
+        $server->setRelation(
+            'members',
+            $server->members()->get()->sortBy(fn ($m) => $roleOrder[$m->pivot->role] ?? 9)->values()
+        );
+
+        return view('servers.edit', ['server' => $server, 'myRole' => $role]);
     }
 
     /**
@@ -97,6 +106,12 @@ class ServerController extends Controller
         ]);
 
         $server = Server::where('invite_code', $validated['invite_code'])->firstOrFail();
+
+        abort_if(
+            $server->bans()->where('user_id', Auth::id())->exists(),
+            403,
+            'Вы забанены на этом сервере.'
+        );
 
         // если пользователь уже участник — просто перенаправляем на сервер
         if (! $server->members()->where('user_id', Auth::id())->exists()) {

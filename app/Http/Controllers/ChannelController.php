@@ -22,7 +22,9 @@ class ChannelController extends Controller
         $server->load(['categories.channels', 'channels' => fn ($q) => $q->whereNull('category_id')]);
 
         // подгружаем последние 50 сообщений канала в хронологическом порядке
-        $messages = $channel->messages()->with('user:id,name,avatar_path')->latest()->take(50)->get()->reverse();
+        $messages = $channel->messages()
+            ->with(['user:id,name,avatar_path', 'reactions.user:id,name', 'parent.user:id,name'])
+            ->latest()->take(50)->get()->reverse();
 
         return view('servers.show', [
             'server' => $server,

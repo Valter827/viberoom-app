@@ -78,6 +78,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Упоминания (@username) этого пользователя в сообщениях — для колокольчика уведомлений.
+     */
+    public function mentions()
+    {
+        return $this->hasMany(Mention::class);
+    }
+
+    /**
      * Пользователь онлайн, если его last_seen_at было недавно (например, < 60 секунд назад)
      * — используется как дополнение к явному статусу status.
      */

@@ -46,8 +46,9 @@
 
     {{-- Основная область: друзья + заявки + форма добавления --}}
     <main class="flex-1 flex flex-col bg-[#313338] overflow-y-auto">
-        <div class="h-12 flex items-center px-4 border-b border-black/20 flex-shrink-0">
+        <div class="h-12 flex items-center px-4 border-b border-black/20 flex-shrink-0 justify-between">
             <span class="font-semibold">🧑‍🤝‍🧑 Друзья</span>
+            @include('components.mentions-bell')
         </div>
 
         <div class="p-6 max-w-2xl mx-auto w-full">
