@@ -1,4 +1,4 @@
-{{-- Вторая колонка: название сервера + список каналов, сгруппированных по категориям --}}
+﻿{{-- Вторая колонка: название сервера + список каналов, сгруппированных по категориям --}}
 <aside class="w-60 flex-shrink-0 bg-[#2B2D31] flex flex-col">
 
     {{-- Шапка с названием сервера --}}
@@ -23,12 +23,20 @@
     </div>
 
     {{-- Список категорий и каналов --}}
-    <div class="flex-1 overflow-y-auto px-2 py-3 space-y-4">
+    <div class="flex-1 overflow-y-auto px-2 py-3 space-y-4"
+         x-data="{ showCreate: false, targetCategoryId: null }"
+         @open-create-channel.window="showCreate = true; targetCategoryId = $event.detail">
         @foreach ($server->categories as $category)
             <div>
-                <h2 class="px-2 text-xs font-semibold uppercase text-gray-400 tracking-wide mb-1">
-                    {{ $category->name }}
-                </h2>
+                <div class="flex items-center justify-between px-2 mb-1 group">
+                    <h2 class="text-xs font-semibold uppercase text-gray-400 tracking-wide">
+                        {{ $category->name }}
+                    </h2>
+                    @if (in_array($myRole, ['owner', 'admin']))
+                        <button @click="$dispatch('open-create-channel', {{ $category->id }})"
+                                class="text-gray-500 hover:text-white opacity-0 group-hover:opacity-100 text-sm" title="Создать канал">+</button>
+                    @endif
+                </div>
                 <div class="space-y-0.5">
                     @foreach ($category->channels as $channel)
                         @include('servers.partials.channel-link', ['channel' => $channel])
@@ -38,13 +46,56 @@
         @endforeach
 
         {{-- Каналы без категории --}}
-        @if ($server->channels->whereNull('category_id')->count())
+        <div>
+            @if (in_array($myRole, ['owner', 'admin']))
+                <div class="flex items-center justify-between px-2 mb-1 group">
+                    <h2 class="text-xs font-semibold uppercase text-gray-400 tracking-wide">Каналы</h2>
+                    <button @click="$dispatch('open-create-channel', null)"
+                            class="text-gray-500 hover:text-white opacity-0 group-hover:opacity-100 text-sm" title="Создать канал">+</button>
+                </div>
+            @endif
             <div class="space-y-0.5">
                 @foreach ($server->channels->whereNull('category_id') as $channel)
                     @include('servers.partials.channel-link', ['channel' => $channel])
                 @endforeach
             </div>
-        @endif
+        </div>
+
+        {{-- Модалка создания канала --}}
+        <div x-show="showCreate" x-cloak class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+            <div @click.outside="showCreate = false" class="bg-[#313338] rounded-lg p-6 w-96">
+                <h3 class="font-semibold mb-4">Создать канал</h3>
+                <form method="POST" action="{{ route('channels.store', $server) }}">
+                    @csrf
+                    <template x-if="targetCategoryId">
+                        <input type="hidden" name="category_id" :value="targetCategoryId">
+                    </template>
+
+                    <label class="block text-xs font-semibold uppercase text-gray-400 mb-2">Тип канала</label>
+                    <div class="flex gap-2 mb-4" x-data="{ type: 'text' }">
+                        <label class="flex-1 flex items-center gap-2 bg-[#1E1F22] rounded px-3 py-2 cursor-pointer"
+                               :class="type === 'text' ? 'ring-1 ring-[#5865F2]' : ''">
+                            <input type="radio" name="type" value="text" x-model="type" class="accent-[#5865F2]">
+                            <span class="text-sm">💬 Текстовый</span>
+                        </label>
+                        <label class="flex-1 flex items-center gap-2 bg-[#1E1F22] rounded px-3 py-2 cursor-pointer"
+                               :class="type === 'voice' ? 'ring-1 ring-[#5865F2]' : ''">
+                            <input type="radio" name="type" value="voice" x-model="type" class="accent-[#5865F2]">
+                            <span class="text-sm">🔊 Голосовой</span>
+                        </label>
+                    </div>
+
+                    <label class="block text-xs font-semibold uppercase text-gray-400 mb-1">Название канала</label>
+                    <input type="text" name="name" required maxlength="50" placeholder="новый-канал"
+                           class="w-full bg-[#1E1F22] rounded px-3 py-2 text-sm outline-none mb-4">
+
+                    <div class="flex justify-end gap-2">
+                        <button type="button" @click="showCreate = false" class="text-sm text-gray-400 hover:text-white">Отмена</button>
+                        <button type="submit" class="text-sm bg-[#5865F2] hover:bg-[#4752c4] px-4 py-2 rounded">Создать</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     {{-- Мини-профиль текущего пользователя внизу колонки --}}
