@@ -28,6 +28,13 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // при входе показываем пользователя "в сети" (если он раньше не выбрал
+        // себе другой статус вручную — считаем это первым явным присутствием)
+        $user = Auth::user();
+        if ($user->status === 'offline') {
+            $user->forceFill(['status' => 'online'])->saveQuietly();
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
@@ -36,6 +43,10 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        if ($user = Auth::user()) {
+            $user->forceFill(['status' => 'offline'])->saveQuietly();
+        }
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

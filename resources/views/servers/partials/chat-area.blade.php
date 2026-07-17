@@ -120,7 +120,7 @@
                             <button @click="open = !open" class="px-2 py-1 hover:bg-white/10 text-sm" title="Реакция">🙂</button>
                             <div x-show="open" @click.outside="open = false" x-cloak
                                  class="absolute right-0 top-7 bg-[#1E1F22] p-1.5 rounded-lg shadow-xl grid grid-cols-6 gap-1 z-20 w-48">
-                                <template x-for="e in ['👍','❤️','😂','🔥','🎉','😮','😢','🙏','👏','😎','💯','✅']" :key="e">
+                                <template x-for="e in ['\u{1F44D}','\u2764\uFE0F','\u{1F602}','\u{1F525}','\u{1F389}','\u{1F62E}','\u{1F622}','\u{1F64F}','\u{1F44F}','\u{1F60E}','\u{1F4AF}','\u2705']" :key="e">
                                     <button @click="react(msg, e); open = false" class="text-lg hover:bg-white/10 rounded p-1" x-text="e"></button>
                                 </template>
                             </div>
@@ -166,7 +166,7 @@
                     <button type="button" @click="open = !open" class="text-gray-400 hover:text-white">🙂</button>
                     <div x-show="open" @click.outside="open = false" x-cloak
                          class="absolute bottom-8 right-0 bg-[#2B2D31] p-2 rounded-lg shadow-lg grid grid-cols-6 gap-1 z-10">
-                        @foreach (['😀','😂','😍','👍','🔥','🎉','😢','😮','❤️','🙌','😎','🤔'] as $emoji)
+                        @foreach (["\u{1F600}","\u{1F602}","\u{1F60D}","\u{1F44D}","\u{1F525}","\u{1F389}","\u{1F622}","\u{1F62E}","\u{2764}\u{FE0F}","\u{1F64C}","\u{1F60E}","\u{1F914}"] as $emoji)
                             <button type="button" @click="content += '{{ $emoji }}'; open = false"
                                     class="text-lg hover:bg-white/10 rounded p-1">{{ $emoji }}</button>
                         @endforeach

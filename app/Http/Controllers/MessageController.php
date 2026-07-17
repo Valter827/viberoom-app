@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\MessageSent;
 use App\Models\Channel;
 use App\Models\Mention;
 use App\Models\Message;
@@ -75,11 +74,9 @@ class MessageController extends Controller
 
         $message->load(['user:id,name,avatar_path', 'reactions.user:id,name', 'parent.user:id,name']);
 
-        try {
-            broadcast(new MessageSent($message))->toOthers();
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        // Реал-тайм для остальных участников идёт через polling (см. poll()),
+        // поэтому broadcast() здесь больше не нужен — раньше попытка достучаться
+        // до недоступного Reverb-сервера добавляла заметную задержку к каждой отправке.
 
         return response()->json($message->toChatArray(), 201);
     }
@@ -138,6 +135,10 @@ class MessageController extends Controller
         } else {
             $message->reactions()->create(['user_id' => Auth::id(), 'emoji' => $validated['emoji']]);
         }
+
+        // реакции не меняют сами поля сообщения, поэтому "трогаем" его вручную,
+        // чтобы polling() у других участников подхватил изменение
+        $message->touch();
 
         $message->load('reactions.user:id,name');
 

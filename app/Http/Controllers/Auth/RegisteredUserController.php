@@ -72,6 +72,7 @@ class RegisteredUserController extends Controller
         event(new Registered($user));
 
         Auth::login($user);
+        $user->forceFill(['status' => 'online'])->saveQuietly();
 
         return redirect(route('dashboard', absolute: false));
     }

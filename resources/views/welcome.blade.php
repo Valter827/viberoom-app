@@ -23,7 +23,7 @@
         <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">VibeRoom</h1>
         <p class="text-gray-400 mb-10 text-center max-w-sm">Общайся голосом и текстом со своими комьюнити</p>
 
-        <div class="flex flex-col sm:flex-row gap-4 w-full max-w-xs sm:max-w-none">
+        <div class="flex flex-col sm:flex-row gap-4 w-full max-w-xs sm:max-w-none justify-center">
             <a href="{{ route('login') }}"
                class="px-8 py-3 rounded-lg bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold text-center transition-colors">
                 Войти
