@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Message extends Model
 {
     protected $fillable = [
-        'channel_id', 'user_id', 'parent_id', 'content',
+        'channel_id', 'user_id', 'parent_id', 'content', 'is_system',
         'attachment_path', 'attachment_type', 'edited_at', 'pinned_at',
     ];
 
@@ -62,6 +62,7 @@ class Message extends Model
             'created_at' => $this->created_at->toIso8601String(),
             'edited_at' => $this->edited_at?->toIso8601String(),
             'pinned' => (bool) $this->pinned_at,
+            'is_system' => (bool) $this->is_system,
             'user' => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,

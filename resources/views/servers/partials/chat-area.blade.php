@@ -57,16 +57,26 @@
         {{-- Лента сообщений --}}
         <div class="flex-1 overflow-y-auto px-4 py-3" x-ref="messageList">
             <template x-for="msg in messages" :key="msg.id">
-                <div class="group flex items-start gap-3 py-1.5 hover:bg-white/[0.02] px-2 -mx-2 rounded relative">
-
-                    {{-- Плашка "в ответ на" --}}
-                    <template x-if="msg.parent">
-                        <div class="absolute -top-1 left-12 text-xs text-gray-500 flex items-center gap-1">
-                            <span>↪</span>
-                            <span class="font-medium" x-text="msg.parent.user_name"></span>:
-                            <span class="truncate max-w-xs" x-text="msg.parent.content"></span>
+                <div>
+                    {{-- Системное сообщение (вышел из сети / стал невидимым и т.п.) --}}
+                    <template x-if="msg.is_system">
+                        <div class="text-center py-1">
+                            <span class="text-xs text-gray-500 italic" x-text="msg.content"></span>
                         </div>
                     </template>
+
+                    {{-- Обычное сообщение --}}
+                    <template x-if="!msg.is_system">
+                        <div class="group flex items-start gap-3 py-1.5 hover:bg-white/[0.02] px-2 -mx-2 rounded relative">
+
+                            {{-- Плашка "в ответ на" --}}
+                            <template x-if="msg.parent">
+                                <div class="absolute -top-1 left-12 text-xs text-gray-500 flex items-center gap-1">
+                                    <span>↪</span>
+                                    <span class="font-medium" x-text="msg.parent.user_name"></span>:
+                                    <span class="truncate max-w-xs" x-text="msg.parent.content"></span>
+                                </div>
+                            </template>
 
                     <img :src="msg.user.avatar_url" class="w-10 h-10 rounded-full flex-shrink-0 mt-3 cursor-pointer"
                          @click="openProfile(msg.user.id, $event)">
@@ -136,6 +146,8 @@
                             <button @click="deleteMessage(msg)" class="px-2 py-1 hover:bg-white/10 text-sm text-red-400" title="Удалить">🗑️</button>
                         </template>
                     </div>
+                        </div>
+                    </template>
                 </div>
             </template>
         </div>

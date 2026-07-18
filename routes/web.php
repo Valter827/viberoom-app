@@ -50,6 +50,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/servers/{server}', [ServerController::class, 'show'])->name('servers.show');
     Route::get('/servers/{server}/settings', [ServerController::class, 'edit'])->name('servers.edit');
     Route::patch('/servers/{server}', [ServerController::class, 'update'])->name('servers.update');
+    Route::get('/servers/{server}/online-statuses', [ServerController::class, 'onlineStatuses'])->name('servers.online-statuses');
     // --- Участники сервера: роли/кик/бан ---
     Route::patch('/servers/{server}/members/{user}/role', [ServerMemberController::class, 'updateRole'])->name('members.role');
     Route::delete('/servers/{server}/members/{user}', [ServerMemberController::class, 'kick'])->name('members.kick');
@@ -73,4 +74,5 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/channels/{channel}/voice/leave', [VoiceController::class, 'leave'])->name('voice.leave');
     Route::post('/channels/{channel}/voice/signal', [VoiceController::class, 'sendSignal'])->name('voice.signal');
     Route::get('/channels/{channel}/voice/signals', [VoiceController::class, 'pollSignals'])->name('voice.signals');
+    Route::get('/servers/{server}/voice-participants', [VoiceController::class, 'serverParticipants'])->name('voice.server-participants');
 });

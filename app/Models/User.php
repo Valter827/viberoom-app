@@ -86,6 +86,25 @@ class User extends Authenticatable
     }
 
     /**
+     * Отправить системное сообщение (напр. "вышел из сети") в первый текстовый
+     * канал каждого сервера, где состоит пользователь. Используется при смене
+     * статуса на offline/невидимка и при выходе из аккаунта.
+     */
+    public function announceToServers(string $text): void
+    {
+        foreach ($this->servers as $server) {
+            $channel = $server->channels()->where('type', 'text')->orderBy('position')->first();
+            if ($channel) {
+                $channel->messages()->create([
+                    'user_id' => $this->id,
+                    'content' => $text,
+                    'is_system' => true,
+                ]);
+            }
+        }
+    }
+
+    /**
      * Пользователь онлайн, если его last_seen_at было недавно (например, < 60 секунд назад)
      * — используется как дополнение к явному статусу status.
      */

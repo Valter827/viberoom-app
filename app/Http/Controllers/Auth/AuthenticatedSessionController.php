@@ -45,6 +45,7 @@ class AuthenticatedSessionController extends Controller
     {
         if ($user = Auth::user()) {
             $user->forceFill(['status' => 'offline'])->saveQuietly();
+            $user->announceToServers($user->name . ' вышел(а) из сети.');
         }
 
         Auth::guard('web')->logout();

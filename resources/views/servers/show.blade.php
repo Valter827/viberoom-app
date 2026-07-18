@@ -7,19 +7,27 @@
     @include('servers.partials.chat-area')
 
     {{-- Правая колонка со списком участников сервера (онлайн-статусы) --}}
-    <aside class="w-60 flex-shrink-0 bg-[#2B2D31] p-3 overflow-y-auto hidden lg:block">
+    <aside class="w-60 flex-shrink-0 bg-[#2B2D31] p-3 overflow-y-auto hidden lg:block"
+           x-data="{
+              online: {{ Js::from($server->members->mapWithKeys(fn($m) => [$m->id => $m->isOnline()])) }},
+              async refresh() {
+                  const res = await fetch('{{ route('servers.online-statuses', $server) }}', { headers: { 'Accept': 'application/json' } });
+                  if (res.ok) this.online = await res.json();
+              },
+           }"
+           x-init="setInterval(() => refresh(), 10000)">
         <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2">
-            В сети — {{ $server->members->filter(fn($m) => $m->isOnline())->count() }}
+            В сети — <span x-text="Object.values(online).filter(Boolean).length"></span>
         </h3>
         <div class="space-y-2">
             @foreach ($server->members as $member)
                 <div class="flex items-center gap-2 px-1 py-1 rounded hover:bg-[#35373c] cursor-pointer"
                      onclick="openProfile({{ $member->id }}, event)">
                     <div class="relative">
-                        <img src="{{ $member->avatar_url }}" class="w-8 h-8 rounded-full {{ $member->isOnline() ? '' : 'opacity-50' }}">
-                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#2B2D31] {{ $member->isOnline() ? 'bg-green-500' : 'bg-gray-500' }}"></span>
+                        <img src="{{ $member->avatar_url }}" class="w-8 h-8 rounded-full" :class="online[{{ $member->id }}] ? '' : 'opacity-50'">
+                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#2B2D31]" :class="online[{{ $member->id }}] ? 'bg-green-500' : 'bg-gray-500'"></span>
                     </div>
-                    <span class="text-sm truncate {{ $member->isOnline() ? 'text-gray-200' : 'text-gray-500' }}">{{ $member->name }}</span>
+                    <span class="text-sm truncate" :class="online[{{ $member->id }}] ? 'text-gray-200' : 'text-gray-500'">{{ $member->name }}</span>
                 </div>
             @endforeach
         </div>

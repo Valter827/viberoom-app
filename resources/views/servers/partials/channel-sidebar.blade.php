@@ -24,7 +24,16 @@
 
     {{-- Список категорий и каналов --}}
     <div class="flex-1 overflow-y-auto px-2 py-3 space-y-4"
-         x-data="{ showCreate: false, targetCategoryId: null }"
+         x-data="{
+            showCreate: false,
+            targetCategoryId: null,
+            voiceParticipants: {},
+            async loadVoiceParticipants() {
+                const res = await fetch('{{ route('voice.server-participants', $server) }}', { headers: { 'Accept': 'application/json' } });
+                if (res.ok) this.voiceParticipants = await res.json();
+            },
+         }"
+         x-init="loadVoiceParticipants(); setInterval(() => loadVoiceParticipants(), 5000)"
          @open-create-channel.window="showCreate = true; targetCategoryId = $event.detail">
         @foreach ($server->categories as $category)
             <div>
@@ -98,6 +107,36 @@
         </div>
     </div>
 
+    {{-- Постоянная полоса активного голосового звонка — видна на любой странице сервера,
+         не пропадает при переходе в текстовый канал написать сообщение --}}
+    <div x-show="$store.voice.joined" x-cloak class="bg-[#232428] border-t border-black/20 px-3 py-2 flex-shrink-0">
+        <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-1.5 text-emerald-400 text-xs font-medium">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                Голосовая связь подключена
+            </div>
+            <div class="flex items-center gap-2">
+                <button @click="$dispatch('open-voice-settings')" class="text-gray-400 hover:text-white text-sm" title="Настройки голоса">⚙️</button>
+                <button @click="$store.voice.leave()" class="text-gray-400 hover:text-red-400 text-sm" title="Отключиться">📞</button>
+            </div>
+        </div>
+        <p class="text-xs text-gray-400 mb-1.5 truncate">🔊 <span x-text="$store.voice.channelName"></span></p>
+        <div class="flex gap-1.5">
+            <button @click="$store.voice.toggleMute()"
+                    class="flex-1 text-xs rounded py-1"
+                    :class="$store.voice.muted ? 'bg-red-600/80' : 'bg-[#3a3c42] hover:bg-[#43454b]'">
+                <span x-text="$store.voice.muted ? '🔇' : '🎙️'"></span>
+            </button>
+            <button @click="$store.voice.toggleDeafen()"
+                    class="flex-1 text-xs rounded py-1"
+                    :class="$store.voice.deafened ? 'bg-red-600/80' : 'bg-[#3a3c42] hover:bg-[#43454b]'">
+                <span x-text="$store.voice.deafened ? '🔕' : '🔔'"></span>
+            </button>
+            <a :href="`/servers/${$store.voice.serverId}/channels/${$store.voice.channelId}`"
+               class="flex-1 text-xs rounded py-1 bg-[#3a3c42] hover:bg-[#43454b] text-center" title="Вернуться к голосовому каналу">↩️</a>
+        </div>
+    </div>
+
     {{-- Мини-профиль текущего пользователя внизу колонки --}}
     <div class="h-14 flex items-center px-2 bg-[#232428] flex-shrink-0">
         <div class="relative">
@@ -113,3 +152,5 @@
         <a href="{{ route('profile.edit') }}" class="ml-auto text-gray-400 hover:text-white text-sm" title="Настройки профиля">⚙️</a>
     </div>
 </aside>
+
+@include('components.voice-settings-modal')

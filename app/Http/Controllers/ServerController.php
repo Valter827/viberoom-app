@@ -40,6 +40,22 @@ class ServerController extends Controller
     }
 
     /**
+     * Живой статус "в сети" всех участников сервера — опрашивается сайдбаром
+     * раз в ~10 сек, чтобы дот онлайн/оффлайн обновлялся без перезагрузки
+     * страницы (например, когда кто-то вышел или поставил "невидимку").
+     */
+    public function onlineStatuses(Server $server): \Illuminate\Http\JsonResponse
+    {
+        abort_unless($server->members()->where('user_id', Auth::id())->exists(), 403);
+
+        $statuses = $server->members()->get(['users.id'])->mapWithKeys(
+            fn ($m) => [$m->id => $m->isOnline()]
+        );
+
+        return response()->json($statuses);
+    }
+
+    /**
      * Страница настроек сервера (название, иконка, описание + управление участниками) —
      * доступна owner/admin (полностью) и moderator (только вкладка участников).
      */

@@ -127,6 +127,35 @@ class VoiceController extends Controller
         return response()->json($signals);
     }
 
+    /**
+     * Лёгкий опрос "кто сейчас в каких голосовых каналах этого сервера" —
+     * используется в сайдбаре, чтобы показывать участников прямо под названием
+     * канала (даже если сам зритель не в голосовом канале).
+     */
+    public function serverParticipants(\App\Models\Server $server): JsonResponse
+    {
+        abort_unless($server->members()->where('user_id', Auth::id())->exists(), 403);
+
+        // подчищаем "зависших" (без heartbeat > 15 сек) по всем голосовым каналам сервера
+        $channelIds = $server->channels()->where('type', 'voice')->pluck('id');
+        VoiceParticipant::whereIn('channel_id', $channelIds)
+            ->where('last_seen_at', '<', now()->subSeconds(15))
+            ->delete();
+
+        $participants = VoiceParticipant::whereIn('channel_id', $channelIds)
+            ->with('user:id,name,avatar_path')
+            ->get()
+            ->groupBy('channel_id')
+            ->map(fn ($group) => $group->map(fn ($p) => [
+                'user_id' => $p->user_id,
+                'name' => $p->user->name,
+                'avatar_url' => $p->user->avatar_url,
+                'muted' => $p->muted,
+            ])->values());
+
+        return response()->json($participants);
+    }
+
     private function participantsList(Channel $channel): array
     {
         return VoiceParticipant::where('channel_id', $channel->id)
@@ -137,6 +166,7 @@ class VoiceController extends Controller
                 'name' => $p->user->name,
                 'avatar_url' => $p->user->avatar_url,
                 'muted' => $p->muted,
+                'is_me' => $p->user_id === Auth::id(),
             ])
             ->values()
             ->all();

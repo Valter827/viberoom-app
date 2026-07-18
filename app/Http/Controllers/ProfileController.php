@@ -31,14 +31,31 @@ class ProfileController extends Controller
             'banner_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ]);
 
+        $previousStatus = $user->status;
+
         if ($request->hasFile('avatar')) {
             if ($user->avatar_path) {
-                Storage::disk('public')->delete($user->avatar_path);
+                try {
+                    Storage::disk('public')->delete($user->avatar_path);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
             }
             $validated['avatar_path'] = $request->file('avatar')->store('avatars', 'public');
         }
 
+        // 'avatar' (сам файл) не должен попадать в mass-assignment — только avatar_path
+        unset($validated['avatar']);
+
         $user->update($validated);
+
+        // если пользователь только что вручную поставил "невидимку" — сообщаем
+        // об этом в каналах серверов (как при обычном выходе)
+        if ($previousStatus !== 'offline' && $validated['status'] === 'offline') {
+            $user->announceToServers($user->name . ' стал(а) невидимым(ой).');
+        } elseif ($previousStatus === 'offline' && $validated['status'] !== 'offline') {
+            $user->announceToServers($user->name . ' снова в сети.');
+        }
 
         return back()->with('status', 'Профиль обновлён.');
     }
