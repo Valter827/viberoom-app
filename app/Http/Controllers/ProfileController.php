@@ -34,6 +34,20 @@ class ProfileController extends Controller
         $previousStatus = $user->status;
 
         if ($request->hasFile('avatar')) {
+            $newPath = $request->file('avatar')->store('avatars', 'public');
+
+            // 'public' диск сконфигурирован с 'throw' => false — при ошибке (например,
+            // папка storage/app/public/avatars не создана или недоступна для записи)
+            // store() вернёт false, ничего не бросая. Ловим это явно, чтобы не
+            // записать в БД "false" вместо реального пути и не создать видимость
+            // успешного сохранения при фактически битом аватаре.
+            if ($newPath === false) {
+                return back()->withErrors([
+                    'avatar' => 'Не удалось сохранить файл на сервере. Обратитесь к администратору: '
+                        . 'проверьте права на папку storage/app/public/avatars и что выполнена команда php artisan storage:link.',
+                ]);
+            }
+
             if ($user->avatar_path) {
                 try {
                     Storage::disk('public')->delete($user->avatar_path);
@@ -41,7 +55,7 @@ class ProfileController extends Controller
                     report($e);
                 }
             }
-            $validated['avatar_path'] = $request->file('avatar')->store('avatars', 'public');
+            $validated['avatar_path'] = $newPath;
         }
 
         // 'avatar' (сам файл) не должен попадать в mass-assignment — только avatar_path

@@ -214,6 +214,7 @@
             searchQuery: '',
             searchResults: [],
             lastId: initialMessages.length ? Math.max(...initialMessages.map(m => m.id)) : 0,
+            polling: false,
             pollTimer: null,
 
             init() {
@@ -223,19 +224,21 @@
                 // Реал-тайм без вебсокета: раз в 3 секунды спрашиваем сервер,
                 // нет ли новых сообщений — работает на любом хостинге без
                 // постоянно запущенного процесса (Reverb и т.п. не нужны).
-                this.pollTimer = setInterval(() => this.poll(), 3000);
+                this.pollTimer = setInterval(() => this.poll(), 1000);
 
                 document.addEventListener('visibilitychange', () => {
                     if (document.hidden) {
                         clearInterval(this.pollTimer);
                     } else {
                         this.poll();
-                        this.pollTimer = setInterval(() => this.poll(), 3000);
+                        this.pollTimer = setInterval(() => this.poll(), 1000);
                     }
                 });
             },
 
             async poll() {
+                if (this.polling) return; // не даём запросам копиться друг на друга при 1-сек интервале
+                this.polling = true;
                 try {
                     const res = await fetch(`/channels/${this.channelId}/messages/poll?after=${this.lastId}`, {
                         headers: { 'Accept': 'application/json' },
@@ -259,6 +262,8 @@
                     if (scrolled) this.$nextTick(() => this.scrollToBottom());
                 } catch (e) {
                     // сеть моргнула — попробуем на следующем тике
+                } finally {
+                    this.polling = false;
                 }
             },
 
