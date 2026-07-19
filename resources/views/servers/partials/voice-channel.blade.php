@@ -1,8 +1,14 @@
 {{-- Голосовой канал: presence-список + WebRTC P2P звонок (состояние живёт в глобальном Alpine.store('voice')) --}}
 <div class="flex-1 flex flex-col bg-[#313338]">
-    <div class="h-12 flex items-center px-4 shadow-sm border-b border-black/20 flex-shrink-0">
+    <div class="h-12 flex items-center px-4 shadow-sm border-b border-black/20 flex-shrink-0 gap-2">
         <span class="text-gray-400 mr-1.5">🔊</span>
         <h2 class="font-semibold">{{ $activeChannel->name }}</h2>
+        <template x-if="$store.voice.joined && $store.voice.channelId === {{ $activeChannel->id }}">
+            <span class="text-xs text-emerald-400 flex items-center gap-1 ml-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span x-text="$store.voice.formattedDuration"></span>
+            </span>
+        </template>
     </div>
 
     <div class="flex-1 flex flex-col items-center justify-center gap-6 p-6">
@@ -17,38 +23,43 @@
         </template>
 
         <template x-if="$store.voice.joined && $store.voice.channelId === {{ $activeChannel->id }}">
-            <div class="w-full max-w-2xl">
-                <div class="flex flex-wrap justify-center gap-6 mb-8">
+            <div class="w-full h-full flex flex-col">
+                {{-- Плитки участников — крупные, как в видеозвонке --}}
+                <div class="flex-1 grid gap-3 p-2 place-content-center"
+                     :style="`grid-template-columns: repeat(${Math.min($store.voice.participants.length, 3)}, minmax(180px, 320px))`">
                     <template x-for="p in $store.voice.participants" :key="p.user_id">
-                        <div class="flex flex-col items-center gap-2">
-                            <div class="relative">
-                                <img :src="p.avatar_url" class="w-20 h-20 rounded-full border-4 transition-colors duration-100"
-                                     :class="$store.voice.speaking[p.user_id] ? 'border-emerald-500' : 'border-transparent'">
-                                <span x-show="p.muted" class="absolute bottom-0 right-0 bg-red-600 rounded-full w-7 h-7 flex items-center justify-center text-xs">🔇</span>
-                            </div>
-                            <span class="text-sm text-gray-300" x-text="p.name"></span>
+                        <div class="relative bg-[#1a1b1e] rounded-xl aspect-video flex items-center justify-center transition-shadow duration-100"
+                             :class="$store.voice.speaking[p.user_id] ? 'ring-2 ring-emerald-500' : ''">
+                            <img :src="p.avatar_url" class="w-20 h-20 rounded-full">
+                            <span class="absolute bottom-2 left-2 text-xs bg-black/50 px-2 py-1 rounded" x-text="p.name"></span>
+                            <span x-show="p.muted" class="absolute bottom-2 right-2 bg-red-600 rounded-full w-6 h-6 flex items-center justify-center text-xs">🔇</span>
                         </div>
                     </template>
                 </div>
 
-                <div class="flex justify-center gap-3">
-                    <button @click="$store.voice.toggleMute()" class="px-5 py-3 rounded-full"
-                            :class="$store.voice.muted ? 'bg-red-600 hover:bg-red-500' : 'bg-[#3a3c42] hover:bg-[#43454b]'">
-                        <span x-text="$store.voice.muted ? '🔇 Микрофон выкл.' : '🎙️ Микрофон вкл.'"></span>
+                {{-- Панель управления снизу, как в référence --}}
+                <div class="flex justify-center gap-3 py-4">
+                    <button @click="$store.voice.toggleMute()" class="w-11 h-11 rounded-full flex items-center justify-center"
+                            :class="$store.voice.muted ? 'bg-red-600 hover:bg-red-500' : 'bg-[#3a3c42] hover:bg-[#43454b]'"
+                            title="Микрофон">
+                        <span x-text="$store.voice.muted ? '🔇' : '🎙️'"></span>
                     </button>
-                    <button @click="$store.voice.toggleDeafen()" class="px-5 py-3 rounded-full"
-                            :class="$store.voice.deafened ? 'bg-red-600 hover:bg-red-500' : 'bg-[#3a3c42] hover:bg-[#43454b]'">
-                        <span x-text="$store.voice.deafened ? '🔕 Звук выкл.' : '🔔 Звук вкл.'"></span>
+                    <button @click="$store.voice.toggleDeafen()" class="w-11 h-11 rounded-full flex items-center justify-center"
+                            :class="$store.voice.deafened ? 'bg-red-600 hover:bg-red-500' : 'bg-[#3a3c42] hover:bg-[#43454b]'"
+                            title="Звук">
+                        <span x-text="$store.voice.deafened ? '🔕' : '🔔'"></span>
                     </button>
-                    <button @click="$store.voice.leave()" class="px-5 py-3 rounded-full bg-red-600 hover:bg-red-500">
-                        📞 Покинуть канал
+                    <button @click="$dispatch('open-voice-settings')" class="w-11 h-11 rounded-full flex items-center justify-center bg-[#3a3c42] hover:bg-[#43454b]" title="Настройки голоса">
+                        ⚙️
+                    </button>
+                    <button @click="$store.voice.leave()" class="w-14 h-11 rounded-full flex items-center justify-center bg-red-600 hover:bg-red-500" title="Покинуть канал">
+                        📞
                     </button>
                 </div>
 
-                <p class="text-xs text-gray-500 text-center mt-6 max-w-md mx-auto">
-                    Звонок работает напрямую между браузерами (P2P). Если кто-то за корпоративным
-                    файрволом/жёстким NAT, соединение может не установиться. Можно спокойно перейти
-                    в текстовый канал написать — звонок останется активным (см. полосу внизу слева).
+                <p class="text-xs text-gray-500 text-center pb-4 max-w-md mx-auto">
+                    Звонок работает напрямую между браузерами (P2P). Можно перейти в текстовый
+                    канал написать сообщение — звонок останется активным (см. полосу внизу слева).
                 </p>
             </div>
         </template>

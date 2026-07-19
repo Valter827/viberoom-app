@@ -29,12 +29,21 @@ class VoiceController extends Controller
         abort_unless($channel->isVoice(), 422, 'Это не голосовой канал.');
         $this->authorizeMember($channel);
 
-        VoiceParticipant::updateOrCreate(
+        $participant = VoiceParticipant::updateOrCreate(
             ['channel_id' => $channel->id, 'user_id' => Auth::id()],
             ['last_seen_at' => now()]
         );
 
-        return response()->json(['ok' => true, 'participants' => $this->participantsList($channel)]);
+        // Обновляем общий "в сети" статус пользователя сразу же — иначе индикатор
+        // онлайн может моргнуть "не в сети" в первые секунды звонка, пока не
+        // сработает первый heartbeat.
+        Auth::user()->forceFill(['last_seen_at' => now()])->saveQuietly();
+
+        return response()->json([
+            'ok' => true,
+            'participants' => $this->participantsList($channel),
+            'joined_at' => $participant->created_at->toIso8601String(),
+        ]);
     }
 
     /**
@@ -54,6 +63,9 @@ class VoiceController extends Controller
             'last_seen_at' => now(),
             'muted' => $request->boolean('muted', $participant->muted),
         ]);
+
+        // тот же прямой апдейт общего статуса "в сети" на каждый heartbeat
+        Auth::user()->forceFill(['last_seen_at' => now()])->saveQuietly();
 
         // считаем "вышедшими" тех, от кого не было heartbeat более 15 секунд
         VoiceParticipant::where('channel_id', $channel->id)

@@ -34,6 +34,7 @@
             },
          }"
          x-init="loadVoiceParticipants(); setInterval(() => loadVoiceParticipants(), 5000)"
+         @voice-participants-changed.window="loadVoiceParticipants()"
          @open-create-channel.window="showCreate = true; targetCategoryId = $event.detail">
         @foreach ($server->categories as $category)
             <div>
@@ -114,6 +115,7 @@
             <div class="flex items-center gap-1.5 text-emerald-400 text-xs font-medium">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 Голосовая связь подключена
+                <span class="text-gray-400" x-text="'· ' + $store.voice.formattedDuration"></span>
             </div>
             <div class="flex items-center gap-2">
                 <button @click="$dispatch('open-voice-settings')" class="text-gray-400 hover:text-white text-sm" title="Настройки голоса">⚙️</button>

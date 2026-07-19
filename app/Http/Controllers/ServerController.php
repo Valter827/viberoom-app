@@ -48,7 +48,7 @@ class ServerController extends Controller
     {
         abort_unless($server->members()->where('user_id', Auth::id())->exists(), 403);
 
-        $statuses = $server->members()->get(['users.id'])->mapWithKeys(
+        $statuses = $server->members()->get(['users.id', 'users.status', 'users.last_seen_at'])->mapWithKeys(
             fn ($m) => [$m->id => $m->isOnline()]
         );
 

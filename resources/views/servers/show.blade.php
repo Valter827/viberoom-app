@@ -15,7 +15,8 @@
                   if (res.ok) this.online = await res.json();
               },
            }"
-           x-init="setInterval(() => refresh(), 10000)">
+           x-init="setInterval(() => refresh(), 10000)"
+           @voice-participants-changed.window="refresh()">
         <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2">
             В сети — <span x-text="Object.values(online).filter(Boolean).length"></span>
         </h3>

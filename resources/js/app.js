@@ -57,6 +57,9 @@ document.addEventListener('alpine:init', () => {
         signalTimer: null,
         analysers: {},
         rafId: null,
+        joinedAt: null,
+        durationSeconds: 0,
+        durationTimer: null,
 
         init() {
             const saved = sessionStorage.getItem('voice_session');
@@ -106,6 +109,7 @@ document.addEventListener('alpine:init', () => {
             this.connecting = false;
             this.lastSignalId = 0;
             sessionStorage.setItem('voice_session', JSON.stringify({ channelId, serverId, channelName }));
+            window.dispatchEvent(new CustomEvent('voice-participants-changed'));
 
             this.myId = parseInt(document.querySelector('meta[name="current-user-id"]')?.content) || 'me';
             this.setupSpeakingDetection(this.localStream, this.myId);
@@ -115,8 +119,26 @@ document.addEventListener('alpine:init', () => {
                 if (!p.is_me) this.connectTo(p.user_id, true);
             }
 
+            // таймер длительности звонка — joined_at приходит с сервера, чтобы
+            // при восстановлении сессии (перезагрузка страницы) время не сбрасывалось
+            this.joinedAt = data.joined_at ? new Date(data.joined_at) : new Date();
+            this.durationSeconds = Math.floor((Date.now() - this.joinedAt.getTime()) / 1000);
+            clearInterval(this.durationTimer);
+            this.durationTimer = setInterval(() => {
+                this.durationSeconds = Math.max(0, Math.floor((Date.now() - this.joinedAt.getTime()) / 1000));
+            }, 1000);
+
             this.heartbeatTimer = setInterval(() => this.heartbeat(), 5000);
             this.signalTimer = setInterval(() => this.pollSignals(), 1500);
+        },
+
+        get formattedDuration() {
+            const total = this.durationSeconds;
+            const h = Math.floor(total / 3600);
+            const m = Math.floor((total % 3600) / 60);
+            const s = total % 60;
+            const pad = (n) => String(n).padStart(2, '0');
+            return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
         },
 
         updateParticipants(list) {
@@ -273,6 +295,9 @@ document.addEventListener('alpine:init', () => {
         async leave() {
             clearInterval(this.heartbeatTimer);
             clearInterval(this.signalTimer);
+            clearInterval(this.durationTimer);
+            this.joinedAt = null;
+            this.durationSeconds = 0;
             if (this.rafId) cancelAnimationFrame(this.rafId);
             this.rafId = null;
 
@@ -296,6 +321,7 @@ document.addEventListener('alpine:init', () => {
                     keepalive: true,
                 });
             }
+            window.dispatchEvent(new CustomEvent('voice-participants-changed'));
         },
     });
 
