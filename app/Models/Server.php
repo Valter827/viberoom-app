@@ -57,7 +57,7 @@ class Server extends Model
     {
         return $this->icon_path
             ? asset('storage/' . $this->icon_path)
-            : 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=2B2D31&color=fff';
+            : \App\Support\AvatarPlaceholder::dataUri($this->name, '#2B2D31');
     }
 
     public function bans()

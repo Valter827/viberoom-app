@@ -74,7 +74,7 @@ class User extends Authenticatable
     {
         return $this->avatar_path
             ? asset('storage/' . $this->avatar_path)
-            : 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=5865F2&color=fff';
+            : \App\Support\AvatarPlaceholder::dataUri($this->name, '#5865F2');
     }
 
     /**
