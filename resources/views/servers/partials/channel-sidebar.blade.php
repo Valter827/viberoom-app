@@ -120,17 +120,17 @@
                 <span class="text-gray-400" x-text="'· ' + $store.voice.formattedDuration"></span>
             </div>
             <div class="flex items-center gap-2">
-                <button @click="$dispatch('open-voice-settings')" class="text-gray-400 hover:text-white text-sm" title="Настройки голоса">⚙️</button>
                 <button @click="$store.voice.leave()" class="text-gray-400 hover:text-red-400 text-sm" title="Отключиться">📞</button>
             </div>
         </div>
         <p class="text-xs text-gray-400 mb-1.5 truncate">🔊 <span x-text="$store.voice.channelName"></span></p>
-        <div class="flex gap-1.5">
-            <button @click="$store.voice.toggleMute()"
-                    class="flex-1 text-xs rounded py-1"
-                    :class="$store.voice.muted ? 'bg-red-600/80' : 'bg-[#3a3c42] hover:bg-[#43454b]'">
-                <span x-text="$store.voice.muted ? '🔇' : '🎙️'"></span>
-            </button>
+        <div class="flex gap-1.5 relative" x-data="{ showQuickSettings: false }">
+            <div class="flex-1 flex rounded overflow-hidden" :class="$store.voice.muted ? 'bg-red-600/80' : 'bg-[#3a3c42]'">
+                <button @click="$store.voice.toggleMute()" class="flex-1 text-xs py-1 hover:bg-black/10">
+                    <span x-text="$store.voice.muted ? '🔇' : '🎙️'"></span>
+                </button>
+                <button @click="showQuickSettings = !showQuickSettings" class="px-1.5 hover:bg-black/10 border-l border-black/20 text-[10px]" title="Настройки голоса">▲</button>
+            </div>
             <button @click="$store.voice.toggleDeafen()"
                     class="flex-1 text-xs rounded py-1"
                     :class="$store.voice.deafened ? 'bg-red-600/80' : 'bg-[#3a3c42] hover:bg-[#43454b]'">
@@ -138,6 +138,12 @@
             </button>
             <a :href="`/servers/${$store.voice.serverId}/channels/${$store.voice.channelId}`"
                class="flex-1 text-xs rounded py-1 bg-[#3a3c42] hover:bg-[#43454b] text-center" title="Вернуться к голосовому каналу">↩️</a>
+
+            {{-- Компактная всплывающая панель быстрых настроек голоса, как в Discord --}}
+            <div x-show="showQuickSettings" x-cloak @click.outside="showQuickSettings = false"
+                 class="absolute bottom-full left-0 mb-2 w-72 bg-[#111214] rounded-lg shadow-2xl p-3 z-30 text-sm">
+                @include('components.voice-quick-panel')
+            </div>
         </div>
     </div>
 

@@ -48,6 +48,12 @@ const Sounds = {
         if (!this.enabled()) return;
         try {
             const ctx = this.getCtx();
+            // Браузеры создают AudioContext в состоянии 'suspended' до первого
+            // пользовательского жеста и молча "проигрывают" звук без вывода —
+            // без явного resume() ничего не слышно, даже без единой ошибки в консоли.
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.frequency.value = freq;
@@ -78,6 +84,16 @@ const Sounds = {
     },
 };
 window.Sounds = Sounds;
+
+// "Разогреваем" AudioContext на первый же клик/нажатие клавиши где угодно на
+// странице — иначе звук уведомления о новом сообщении (пришедшем без явного
+// клика пользователя именно в этот момент) может не воспроизвестись.
+['click', 'keydown'].forEach(evt => {
+    document.addEventListener(evt, () => {
+        const ctx = Sounds.getCtx();
+        if (ctx.state === 'suspended') ctx.resume();
+    }, { once: true });
+});
 
 /**
  * Глобальное состояние голосового звонка (Alpine.store), НЕ привязанное к
@@ -126,7 +142,40 @@ document.addEventListener('alpine:init', () => {
 
         getMicConstraints() {
             const deviceId = localStorage.getItem('voice_input_device');
-            return deviceId ? { deviceId: { exact: deviceId } } : true;
+            const profile = localStorage.getItem('voice_input_profile') || 'standard'; // standard|studio
+            const base = {
+                echoCancellation: profile !== 'studio',
+                noiseSuppression: profile !== 'studio',
+                autoGainControl: profile !== 'studio',
+            };
+            return deviceId ? { ...base, deviceId: { exact: deviceId } } : base;
+        },
+
+        /**
+         * Прогоняет "сырой" поток микрофона через GainNode, чтобы ползунок
+         * "Громкость микрофона" реально влиял на передаваемый звук, а не
+         * только на локальный тест. Возвращает поток с обработанным треком,
+         * который и уходит в RTCPeerConnection.
+         */
+        buildOutgoingStream(rawStream) {
+            this.micCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const source = this.micCtx.createMediaStreamSource(rawStream);
+            this.micGainNode = this.micCtx.createGain();
+            this.micGainNode.gain.value = (parseInt(localStorage.getItem('voice_mic_volume') || '100')) / 100;
+            const destination = this.micCtx.createMediaStreamDestination();
+            source.connect(this.micGainNode);
+            this.micGainNode.connect(destination);
+            return destination.stream;
+        },
+
+        setMicVolume(value) {
+            localStorage.setItem('voice_mic_volume', value);
+            if (this.micGainNode) this.micGainNode.gain.value = value / 100;
+        },
+
+        setOutputVolume(value) {
+            localStorage.setItem('voice_output_volume', value);
+            Object.values(this.audioEls).forEach(audio => { audio.volume = value / 100; });
         },
 
         async join(channelId, serverId, channelName, silent = false) {
@@ -136,6 +185,7 @@ document.addEventListener('alpine:init', () => {
             this.connecting = true;
             try {
                 this.localStream = await navigator.mediaDevices.getUserMedia({ audio: this.getMicConstraints(), video: false });
+                this.outgoingStream = this.buildOutgoingStream(this.localStream);
             } catch (e) {
                 this.connecting = false;
                 if (!silent) alert('Не удалось получить доступ к микрофону: ' + e.message);
@@ -228,7 +278,8 @@ document.addEventListener('alpine:init', () => {
             const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
             this.peers[userId] = pc;
 
-            this.localStream.getTracks().forEach(track => pc.addTrack(track, this.localStream));
+            const streamToSend = this.outgoingStream || this.localStream;
+            streamToSend.getTracks().forEach(track => pc.addTrack(track, streamToSend));
 
             pc.onicecandidate = (e) => {
                 if (e.candidate) this.sendSignal(userId, 'candidate', JSON.stringify(e.candidate));
@@ -240,6 +291,7 @@ document.addEventListener('alpine:init', () => {
                     audio = document.createElement('audio');
                     audio.autoplay = true;
                     audio.muted = this.deafened;
+                    audio.volume = (parseInt(localStorage.getItem('voice_output_volume') || '100')) / 100;
                     const outputDevice = localStorage.getItem('voice_output_device');
                     if (outputDevice && audio.setSinkId) {
                         audio.setSinkId(outputDevice).catch(() => {});
@@ -362,6 +414,10 @@ document.addEventListener('alpine:init', () => {
             this.speaking = {};
 
             if (this.localStream) this.localStream.getTracks().forEach(t => t.stop());
+            if (this.micCtx) { try { this.micCtx.close(); } catch (e) {} }
+            this.micCtx = null;
+            this.micGainNode = null;
+            this.outgoingStream = null;
 
             const channelId = this.channelId;
             this.joined = false;
