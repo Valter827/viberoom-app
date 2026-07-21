@@ -121,6 +121,14 @@ document.addEventListener('alpine:init', () => {
         peers: {},
         audioEls: {},
         localStream: null,
+        // Видео: камера и демонстрация экрана используют один и тот же "видео слот"
+        // в исходящем соединении — как в Discord, нельзя включить оба одновременно.
+        cameraEnabled: false,
+        screenSharing: false,
+        localVideoStream: null,
+        localScreenStream: null,
+        videoStreams: {}, // userId -> MediaStream (моя камера/шеринг + входящие от собеседников)
+        screenSharingUsers: {}, // userId -> true, если это именно демонстрация экрана (для рамки/подписи)
         lastSignalId: 0,
         heartbeatTimer: null,
         signalTimer: null,
@@ -149,6 +157,22 @@ document.addEventListener('alpine:init', () => {
                 autoGainControl: profile !== 'studio',
             };
             return deviceId ? { ...base, deviceId: { exact: deviceId } } : base;
+        },
+
+        getCameraConstraints() {
+            const deviceId = localStorage.getItem('video_camera_device');
+            const base = { width: { ideal: 1280 }, height: { ideal: 720 } };
+            return deviceId ? { ...base, deviceId: { exact: deviceId } } : base;
+        },
+
+        getScreenShareConstraints() {
+            const heights = { '720p': 720, '1080p': 1080, '1440p': 1440 };
+            const resolution = localStorage.getItem('screen_share_resolution') || '1080p';
+            const fps = parseInt(localStorage.getItem('screen_share_fps') || '30');
+            return {
+                video: { height: { ideal: heights[resolution] || 1080 }, frameRate: { ideal: fps } },
+                audio: localStorage.getItem('screen_share_audio') === '1',
+            };
         },
 
         /**
@@ -234,6 +258,114 @@ document.addEventListener('alpine:init', () => {
 
             this.heartbeatTimer = setInterval(() => this.heartbeat(), 5000);
             this.signalTimer = setInterval(() => this.pollSignals(), 1500);
+
+            // если в профиле включено "всегда включать камеру при входе" — включаем сразу
+            if (!silent && localStorage.getItem('video_default_enabled') === '1') {
+                this.toggleCamera();
+            }
+        },
+
+        /**
+         * Пересогласовывает уже установленное P2P-соединение после добавления/удаления
+         * видео-дорожки (addTrack/removeTrack сами по себе не долетают до собеседника
+         * без нового offer/answer).
+         */
+        async renegotiate(userId) {
+            const pc = this.peers[userId];
+            if (!pc) return;
+            try {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                this.sendSignal(userId, 'offer', JSON.stringify(offer));
+            } catch (e) { /* ignore glare — редкий edge case для P2P-демо */ }
+        },
+
+        addVideoTrackToPeers(track) {
+            for (const [userId, pc] of Object.entries(this.peers)) {
+                const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+                if (sender) {
+                    sender.replaceTrack(track);
+                } else {
+                    pc.addTrack(track, this.localVideoStream || this.localScreenStream);
+                    this.renegotiate(userId);
+                }
+            }
+        },
+
+        removeVideoTrackFromPeers() {
+            for (const [userId, pc] of Object.entries(this.peers)) {
+                const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+                if (sender) {
+                    pc.removeTrack(sender);
+                    this.renegotiate(userId);
+                }
+            }
+        },
+
+        async toggleCamera() {
+            if (this.cameraEnabled) { this.stopCamera(); return; }
+            if (this.screenSharing) await this.stopScreenShare();
+
+            try {
+                this.localVideoStream = await navigator.mediaDevices.getUserMedia({ video: this.getCameraConstraints() });
+            } catch (e) {
+                alert('Не удалось получить доступ к камере: ' + e.message);
+                return;
+            }
+            this.cameraEnabled = true;
+            this.videoStreams = { ...this.videoStreams, [this.myId]: this.localVideoStream };
+            this.addVideoTrackToPeers(this.localVideoStream.getVideoTracks()[0]);
+        },
+
+        stopCamera() {
+            this.cameraEnabled = false;
+            if (this.localVideoStream) this.localVideoStream.getTracks().forEach(t => t.stop());
+            this.localVideoStream = null;
+            const vs = { ...this.videoStreams };
+            delete vs[this.myId];
+            this.videoStreams = vs;
+            this.removeVideoTrackFromPeers();
+        },
+
+        async toggleScreenShare() {
+            if (this.screenSharing) { await this.stopScreenShare(); return; }
+            if (this.cameraEnabled) this.stopCamera();
+
+            const constraints = this.getScreenShareConstraints();
+            try {
+                this.localScreenStream = await navigator.mediaDevices.getDisplayMedia(constraints);
+            } catch (e) {
+                return; // пользователь закрыл системный диалог выбора окна/экрана
+            }
+            this.screenSharing = true;
+            this.videoStreams = { ...this.videoStreams, [this.myId]: this.localScreenStream };
+            this.screenSharingUsers = { ...this.screenSharingUsers, [this.myId]: true };
+
+            const videoTrack = this.localScreenStream.getVideoTracks()[0];
+            videoTrack.onended = () => this.stopScreenShare(); // пользователь нажал "Остановить показ" в браузере
+            this.addVideoTrackToPeers(videoTrack);
+
+            if (constraints.audio) {
+                this.localScreenStream.getAudioTracks().forEach(track => {
+                    for (const [userId, pc] of Object.entries(this.peers)) {
+                        pc.addTrack(track, this.localScreenStream);
+                        this.renegotiate(userId);
+                    }
+                });
+            }
+        },
+
+        async stopScreenShare() {
+            this.screenSharing = false;
+            if (this.localScreenStream) this.localScreenStream.getTracks().forEach(t => t.stop());
+            this.localScreenStream = null;
+            const vs = { ...this.videoStreams };
+            delete vs[this.myId];
+            this.videoStreams = vs;
+            const ss = { ...this.screenSharingUsers };
+            delete ss[this.myId];
+            this.screenSharingUsers = ss;
+            this.removeVideoTrackFromPeers();
         },
 
         get formattedDuration() {
@@ -281,11 +413,28 @@ document.addEventListener('alpine:init', () => {
             const streamToSend = this.outgoingStream || this.localStream;
             streamToSend.getTracks().forEach(track => pc.addTrack(track, streamToSend));
 
+            // если камера или демонстрация экрана уже включены — сразу отдаём видео-дорожку
+            // новому участнику вместе с первым offer, без отдельной renegotiation
+            const myVideoStream = this.localVideoStream || this.localScreenStream;
+            if (myVideoStream) {
+                myVideoStream.getVideoTracks().forEach(track => pc.addTrack(track, myVideoStream));
+            }
+
             pc.onicecandidate = (e) => {
                 if (e.candidate) this.sendSignal(userId, 'candidate', JSON.stringify(e.candidate));
             };
 
             pc.ontrack = (e) => {
+                if (e.track.kind === 'video') {
+                    this.videoStreams = { ...this.videoStreams, [userId]: e.streams[0] };
+                    e.track.onended = () => {
+                        const vs = { ...this.videoStreams };
+                        delete vs[userId];
+                        this.videoStreams = vs;
+                    };
+                    return;
+                }
+
                 let audio = this.audioEls[userId];
                 if (!audio) {
                     audio = document.createElement('audio');
@@ -324,6 +473,16 @@ document.addEventListener('alpine:init', () => {
                 delete this.analysers[userId];
             }
             delete this.speaking[userId];
+            if (this.videoStreams[userId]) {
+                const vs = { ...this.videoStreams };
+                delete vs[userId];
+                this.videoStreams = vs;
+            }
+            if (this.screenSharingUsers[userId]) {
+                const ss = { ...this.screenSharingUsers };
+                delete ss[userId];
+                this.screenSharingUsers = ss;
+            }
         },
 
         async sendSignal(toUserId, type, payload) {
@@ -414,6 +573,14 @@ document.addEventListener('alpine:init', () => {
             this.speaking = {};
 
             if (this.localStream) this.localStream.getTracks().forEach(t => t.stop());
+            if (this.localVideoStream) this.localVideoStream.getTracks().forEach(t => t.stop());
+            if (this.localScreenStream) this.localScreenStream.getTracks().forEach(t => t.stop());
+            this.localVideoStream = null;
+            this.localScreenStream = null;
+            this.cameraEnabled = false;
+            this.screenSharing = false;
+            this.videoStreams = {};
+            this.screenSharingUsers = {};
             if (this.micCtx) { try { this.micCtx.close(); } catch (e) {} }
             this.micCtx = null;
             this.micGainNode = null;

@@ -52,6 +52,28 @@
         saveProfile() { localStorage.setItem('voice_input_profile', this.inputProfile); },
         saveMicVolume() { $store.voice.setMicVolume(this.micVolume); },
         saveOutputVolume() { $store.voice.setOutputVolume(this.outputVolume); },
+
+        // Короткий тестовый сигнал именно через выбранное устройство вывода —
+        // помогает проверить, что "Динамики" в списке выбраны правильно, не отходя от попапа.
+        async testOutput() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            gain.gain.value = 0.2;
+            osc.frequency.value = 523;
+            osc.connect(gain);
+            const dest = ctx.createMediaStreamDestination();
+            gain.connect(dest);
+            const audioEl = new Audio();
+            audioEl.srcObject = dest.stream;
+            audioEl.volume = this.outputVolume / 100;
+            if (this.selectedOutput && audioEl.setSinkId) {
+                await audioEl.setSinkId(this.selectedOutput).catch(() => {});
+            }
+            audioEl.play().catch(() => {});
+            osc.start();
+            setTimeout(() => { osc.stop(); ctx.close(); }, 500);
+        },
     }"
     x-init="init()"
     @destroy="if (levelRaf) cancelAnimationFrame(levelRaf)"
@@ -90,7 +112,10 @@
         </template>
     </div>
 
-    <label class="block text-[11px] font-semibold uppercase text-gray-400 mb-1">Громкость звука</label>
+    <div class="flex items-center justify-between mb-1">
+        <label class="block text-[11px] font-semibold uppercase text-gray-400">Громкость звука</label>
+        <button @click="testOutput()" class="text-[11px] text-gray-400 hover:text-white">🔊 Проверить</button>
+    </div>
     <input type="range" min="0" max="100" x-model="outputVolume" @input="saveOutputVolume()" class="w-full mb-3 accent-[#5865F2]">
 
     <label class="flex items-center gap-2 mb-3 cursor-pointer">

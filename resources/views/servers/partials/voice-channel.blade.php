@@ -28,10 +28,21 @@
                 <div class="flex-1 grid gap-3 p-2 place-content-center"
                      :style="`grid-template-columns: repeat(${Math.min($store.voice.participants.length, 3)}, minmax(180px, 320px))`">
                     <template x-for="p in $store.voice.participants" :key="p.user_id">
-                        <div class="relative bg-[#1a1b1e] rounded-xl aspect-video flex items-center justify-center transition-shadow duration-100"
+                        <div class="relative bg-[#1a1b1e] rounded-xl aspect-video flex items-center justify-center transition-shadow duration-100 overflow-hidden"
                              :class="$store.voice.speaking[p.user_id] ? 'ring-2 ring-emerald-500' : ''">
-                            <img :src="p.avatar_url" class="w-20 h-20 rounded-full">
-                            <span class="absolute bottom-2 left-2 text-xs bg-black/50 px-2 py-1 rounded" x-text="p.name"></span>
+                            <template x-if="$store.voice.videoStreams[p.user_id]">
+                                <video autoplay playsinline muted
+                                       class="w-full h-full object-cover"
+                                       :class="$store.voice.screenSharingUsers[p.user_id] ? 'object-contain bg-black' : 'object-cover'"
+                                       x-effect="$el.srcObject = $store.voice.videoStreams[p.user_id] || null"></video>
+                            </template>
+                            <template x-if="!$store.voice.videoStreams[p.user_id]">
+                                <img :src="p.avatar_url" class="w-20 h-20 rounded-full">
+                            </template>
+                            <span class="absolute bottom-2 left-2 text-xs bg-black/50 px-2 py-1 rounded flex items-center gap-1">
+                                <span x-show="$store.voice.screenSharingUsers[p.user_id]">🖥️</span>
+                                <span x-text="p.name"></span>
+                            </span>
                             <span x-show="p.muted" class="absolute bottom-2 right-2 bg-red-600 rounded-full w-6 h-6 flex items-center justify-center text-xs">🔇</span>
                         </div>
                     </template>
@@ -48,6 +59,16 @@
                             :class="$store.voice.deafened ? 'bg-red-600 hover:bg-red-500' : 'bg-[#3a3c42] hover:bg-[#43454b]'"
                             title="Звук">
                         <span x-text="$store.voice.deafened ? '🔕' : '🔔'"></span>
+                    </button>
+                    <button @click="$store.voice.toggleCamera()" class="w-11 h-11 rounded-full flex items-center justify-center"
+                            :class="$store.voice.cameraEnabled ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-[#3a3c42] hover:bg-[#43454b]'"
+                            title="Камера">
+                        📹
+                    </button>
+                    <button @click="$store.voice.toggleScreenShare()" class="w-11 h-11 rounded-full flex items-center justify-center"
+                            :class="$store.voice.screenSharing ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-[#3a3c42] hover:bg-[#43454b]'"
+                            title="Демонстрация экрана">
+                        🖥️
                     </button>
                     <button @click="$dispatch('open-voice-settings')" class="w-11 h-11 rounded-full flex items-center justify-center bg-[#3a3c42] hover:bg-[#43454b]" title="Настройки голоса">
                         ⚙️

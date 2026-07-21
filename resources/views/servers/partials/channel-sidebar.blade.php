@@ -124,7 +124,7 @@
             </div>
         </div>
         <p class="text-xs text-gray-400 mb-1.5 truncate">🔊 <span x-text="$store.voice.channelName"></span></p>
-        <div class="flex gap-1.5 relative" x-data="{ showQuickSettings: false }">
+        <div class="flex flex-wrap gap-1.5 relative" x-data="{ showQuickSettings: false }">
             <div class="flex-1 flex rounded overflow-hidden" :class="$store.voice.muted ? 'bg-red-600/80' : 'bg-[#3a3c42]'">
                 <button @click="$store.voice.toggleMute()" class="flex-1 text-xs py-1 hover:bg-black/10">
                     <span x-text="$store.voice.muted ? '🔇' : '🎙️'"></span>
@@ -135,6 +135,16 @@
                     class="flex-1 text-xs rounded py-1"
                     :class="$store.voice.deafened ? 'bg-red-600/80' : 'bg-[#3a3c42] hover:bg-[#43454b]'">
                 <span x-text="$store.voice.deafened ? '🔕' : '🔔'"></span>
+            </button>
+            <button @click="$store.voice.toggleCamera()" title="Камера"
+                    class="flex-1 text-xs rounded py-1"
+                    :class="$store.voice.cameraEnabled ? 'bg-emerald-600/80' : 'bg-[#3a3c42] hover:bg-[#43454b]'">
+                📹
+            </button>
+            <button @click="$store.voice.toggleScreenShare()" title="Демонстрация экрана"
+                    class="flex-1 text-xs rounded py-1"
+                    :class="$store.voice.screenSharing ? 'bg-emerald-600/80' : 'bg-[#3a3c42] hover:bg-[#43454b]'">
+                🖥️
             </button>
             <a :href="`/servers/${$store.voice.serverId}/channels/${$store.voice.channelId}`"
                class="flex-1 text-xs rounded py-1 bg-[#3a3c42] hover:bg-[#43454b] text-center" title="Вернуться к голосовому каналу">↩️</a>

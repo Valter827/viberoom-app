@@ -132,6 +132,11 @@
                 </div>
             </div>
         </div>
+
+        <div class="px-6 max-w-4xl mx-auto w-full pb-6">
+            <h2 class="text-xs font-semibold uppercase text-gray-400 mb-3">Аудио, видео и демонстрация экрана</h2>
+            @include('components.media-settings-panel')
+        </div>
     </main>
 </div>
 @endsection
