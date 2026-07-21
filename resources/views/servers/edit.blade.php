@@ -1,15 +1,27 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="h-screen flex overflow-hidden">
-    @include('servers.partials.server-sidebar')
+<div class="h-screen flex overflow-hidden" x-data x-init="if (window.top !== window.self) $el.querySelector('#server-icon-rail')?.remove()">
+    <div id="server-icon-rail">
+        @include('servers.partials.server-sidebar')
+    </div>
 
     <main class="flex-1 flex bg-[#313338] overflow-hidden"
           x-data="{ tab: '{{ in_array($myRole, ['owner','admin']) ? 'general' : 'members' }}' }">
 
         {{-- Левая колонка: навигация по разделам настроек --}}
-        <nav class="w-56 flex-shrink-0 bg-[#2B2D31] overflow-y-auto py-6 px-3">
-            <a href="{{ route('servers.show', $server) }}" class="flex items-center gap-2 text-gray-400 hover:text-white text-sm px-2 mb-4">
+        <nav class="w-56 flex-shrink-0 bg-[#2B2D31] overflow-y-auto py-6 px-3"
+             x-data
+             x-init="
+                if (window.top !== window.self) {
+                    // страница открыта внутри окна-модалки настроек — 'Назад' закрывает окно, а не листает iframe
+                    $refs.backLink.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        window.parent.postMessage('close-server-settings', '*');
+                    });
+                }
+             ">
+            <a x-ref="backLink" href="{{ route('servers.show', $server) }}" class="flex items-center gap-2 text-gray-400 hover:text-white text-sm px-2 mb-4">
                 ← Назад на сервер
             </a>
 

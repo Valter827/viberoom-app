@@ -27,6 +27,59 @@ function csrfToken() {
 }
 
 /**
+ * Простые звуковые эффекты через Web Audio API — короткие синтезированные тона,
+ * без внешних аудиофайлов. Можно выключить в настройках (localStorage).
+ */
+const Sounds = {
+    ctx: null,
+
+    enabled() {
+        return localStorage.getItem('sound_effects_disabled') !== '1';
+    },
+
+    getCtx() {
+        if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        return this.ctx;
+    },
+
+    tone(freq, duration = 0.12, delay = 0, volume = 0.15) {
+        if (!this.enabled()) return;
+        try {
+            const ctx = this.getCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.frequency.value = freq;
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(volume, ctx.currentTime + delay);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + delay);
+            osc.stop(ctx.currentTime + delay + duration);
+        } catch (e) { /* аудио недоступно — просто молчим */ }
+    },
+
+    voiceJoin() {
+        this.tone(523, 0.09, 0);
+        this.tone(784, 0.12, 0.08);
+    },
+    voiceLeave() {
+        this.tone(600, 0.09, 0);
+        this.tone(400, 0.14, 0.07);
+    },
+    messageReceived() {
+        this.tone(880, 0.08, 0, 0.08);
+    },
+    mentionReceived() {
+        this.tone(660, 0.08, 0, 0.12);
+        this.tone(990, 0.1, 0.09, 0.12);
+    },
+};
+window.Sounds = Sounds;
+
+/**
  * Глобальное состояние голосового звонка (Alpine.store), НЕ привязанное к
  * конкретной странице канала. Живёт на уровне всего приложения, поэтому
  * переход между текстовыми каналами (обычная навигация браузера) не рвёт
@@ -110,6 +163,7 @@ document.addEventListener('alpine:init', () => {
             this.lastSignalId = 0;
             sessionStorage.setItem('voice_session', JSON.stringify({ channelId, serverId, channelName }));
             window.dispatchEvent(new CustomEvent('voice-participants-changed'));
+            if (!silent) Sounds.voiceJoin();
 
             this.myId = parseInt(document.querySelector('meta[name="current-user-id"]')?.content) || 'me';
             this.setupSpeakingDetection(this.localStream, this.myId);
@@ -286,7 +340,8 @@ document.addEventListener('alpine:init', () => {
             for (const [key, a] of Object.entries(this.analysers)) {
                 a.analyser.getByteFrequencyData(a.data);
                 const avg = a.data.reduce((s, v) => s + v, 0) / a.data.length;
-                const isSpeaking = avg > 12 && !(String(key) === String(this.myId) && this.muted);
+                const threshold = parseInt(localStorage.getItem('voice_sensitivity') || '12');
+                const isSpeaking = avg > threshold && !(String(key) === String(this.myId) && this.muted);
                 this.speaking[key] = isSpeaking;
             }
             this.rafId = requestAnimationFrame(() => this.tickSpeaking());
@@ -315,6 +370,7 @@ document.addEventListener('alpine:init', () => {
             sessionStorage.removeItem('voice_session');
 
             if (channelId) {
+                Sounds.voiceLeave();
                 await fetch(`/channels/${channelId}/voice/leave`, {
                     method: 'POST',
                     headers: { 'X-CSRF-TOKEN': csrfToken(), 'Accept': 'application/json' },

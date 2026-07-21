@@ -249,6 +249,7 @@
 
                     const byId = new Map(this.messages.map(m => [m.id, m]));
                     let scrolled = false;
+                    let playSound = false;
                     for (const msg of newMessages) {
                         if (byId.has(msg.id)) {
                             // обновляем существующее (правка/пин/реакции)
@@ -256,10 +257,14 @@
                         } else {
                             this.messages.push(msg);
                             scrolled = true;
+                            if (!msg.is_system && msg.user.id !== this.currentUserId) {
+                                playSound = true;
+                            }
                         }
                         this.lastId = Math.max(this.lastId, msg.id);
                     }
                     if (scrolled) this.$nextTick(() => this.scrollToBottom());
+                    if (playSound) window.Sounds?.messageReceived();
                 } catch (e) {
                     // сеть моргнула — попробуем на следующем тике
                 } finally {

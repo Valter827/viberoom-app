@@ -4,10 +4,15 @@
         open: false,
         unread: 0,
         items: [],
+        firstLoad: true,
         async load() {
             const res = await fetch('/mentions', { headers: { 'Accept': 'application/json' } });
             if (!res.ok) return;
             const data = await res.json();
+            if (!this.firstLoad && data.unread_count > this.unread) {
+                window.Sounds?.mentionReceived();
+            }
+            this.firstLoad = false;
             this.unread = data.unread_count;
             this.items = data.mentions;
         },

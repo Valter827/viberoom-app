@@ -8,10 +8,12 @@
             @php $myRole = $server->members->firstWhere('id', Auth::id())?->pivot->role; @endphp
             @include('components.mentions-bell')
             @if (in_array($myRole, ['owner', 'admin', 'moderator']))
-                <a href="{{ route('servers.edit', $server) }}" class="text-gray-400 hover:text-white text-xs" title="Участники и настройки">👥</a>
+                <button @click="$dispatch('open-server-settings', { url: '{{ route('servers.edit', $server) }}' })"
+                        class="text-gray-400 hover:text-white text-xs" title="Участники и настройки">👥</button>
             @endif
             @if (in_array($myRole, ['owner', 'admin']))
-                <a href="{{ route('servers.edit', $server) }}" class="text-gray-400 hover:text-white text-xs" title="Настройки сервера">⚙️</a>
+                <button @click="$dispatch('open-server-settings', { url: '{{ route('servers.edit', $server) }}' })"
+                        class="text-gray-400 hover:text-white text-xs" title="Настройки сервера">⚙️</button>
             @endif
             <button
                 x-data
@@ -156,3 +158,4 @@
 </aside>
 
 @include('components.voice-settings-modal')
+@include('components.server-settings-modal')
