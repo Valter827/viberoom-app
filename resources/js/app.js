@@ -44,15 +44,17 @@ const Sounds = {
         return this.ctx;
     },
 
-    tone(freq, duration = 0.12, delay = 0, volume = 0.15) {
+    async tone(freq, duration = 0.12, delay = 0, volume = 0.15) {
         if (!this.enabled()) return;
         try {
             const ctx = this.getCtx();
             // Браузеры создают AudioContext в состоянии 'suspended' до первого
-            // пользовательского жеста и молча "проигрывают" звук без вывода —
-            // без явного resume() ничего не слышно, даже без единой ошибки в консоли.
+            // пользовательского жеста, а Chrome вдобавок может "усыпить" уже рабочий
+            // контекст энергосбережением, если через него давно не проходил звук.
+            // Без await здесь resume() не успевает завершиться до osc.start(), и звук
+            // молча пропадает — без единой ошибки в консоли.
             if (ctx.state === 'suspended') {
-                ctx.resume();
+                await ctx.resume();
             }
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
@@ -272,7 +274,7 @@ document.addEventListener('alpine:init', () => {
          */
         async renegotiate(userId) {
             const pc = this.peers[userId];
-            if (!pc) return;
+            if (!pc || pc.signalingState !== 'stable') return; // согласование уже идёт — дождёмся его завершения
             try {
                 const offer = await pc.createOffer();
                 await pc.setLocalDescription(offer);
@@ -408,6 +410,10 @@ document.addEventListener('alpine:init', () => {
             if (this.peers[userId]) return;
 
             const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+            // "Вежливая" сторона при коллизии офферов (оба одновременно пере-согласовывают
+            // соединение, например включили камеру в один момент) уступает и откатывает
+            // свой оффер — иначе один из offer/answer обменов падает с "wrong state".
+            pc.isPolite = !isInitiator;
             this.peers[userId] = pc;
 
             const streamToSend = this.outgoingStream || this.localStream;
@@ -513,12 +519,26 @@ document.addEventListener('alpine:init', () => {
             const payload = JSON.parse(sig.payload);
 
             if (sig.type === 'offer') {
+                // Коллизия: у нас у самих уже есть свой неподтверждённый оффер (например,
+                // мы сами только что включили камеру одновременно с собеседником).
+                const collision = pc.signalingState !== 'stable';
+                if (collision && !pc.isPolite) {
+                    return; // "невежливая" сторона игнорирует чужой оффер, дожидается своего answer
+                }
+                if (collision) {
+                    await pc.setLocalDescription({ type: 'rollback' }); // "вежливая" сторона уступает
+                }
                 await pc.setRemoteDescription(new RTCSessionDescription(payload));
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
                 this.sendSignal(fromId, 'answer', JSON.stringify(answer));
             } else if (sig.type === 'answer') {
-                await pc.setRemoteDescription(new RTCSessionDescription(payload));
+                // Дублирующийся/устаревший answer (например, из-за повторного опроса
+                // сигналов) вне состояния "есть свой неподтверждённый оффер" — просто игнорируем,
+                // иначе setRemoteDescription падает с "Called in wrong state: stable".
+                if (pc.signalingState === 'have-local-offer') {
+                    await pc.setRemoteDescription(new RTCSessionDescription(payload));
+                }
             } else if (sig.type === 'candidate') {
                 try { await pc.addIceCandidate(new RTCIceCandidate(payload)); } catch (e) { /* ignore */ }
             }
