@@ -18,3 +18,56 @@
 ::-webkit-scrollbar-track {
     background-color: transparent;
 }
+
+/* ==========================================================================
+   Микро-анимации в стиле Discord: круглые icon-кнопки с hover-фоном,
+   шестерёнка вращается при наведении, кнопки "приподнимаются" и нажимаются.
+   ========================================================================== */
+
+/* Круглая icon-кнопка (👥 ⚙️ 📋 и т.д.): мягкий фон и цвет при наведении */
+.icon-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 9999px;
+    color: #949ba4;
+    background-color: transparent;
+    transition: background-color .15s ease, color .15s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
+    cursor: pointer;
+}
+.icon-action:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+.icon-action:active {
+    transform: scale(0.9);
+}
+
+/* Шестерёнка настроек — плавно вращается при наведении, как в Discord */
+.icon-gear:hover {
+    transform: rotate(90deg);
+}
+
+/* Универсальный класс для кнопок: лёгкий "подъём" при наведении и "нажатие" при клике */
+.btn-lift {
+    transition: transform .15s ease, box-shadow .15s ease, filter .15s ease, background-color .15s ease;
+}
+.btn-lift:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.08);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+.btn-lift:active {
+    transform: translateY(0) scale(0.97);
+    filter: brightness(0.95);
+    box-shadow: none;
+}
+
+/* Затемнение фона под модалками/поповерами с лёгким размытием —
+   задний план виден, но акцент на окне сверху, как в Discord */
+.vr-backdrop {
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}

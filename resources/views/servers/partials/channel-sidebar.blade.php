@@ -9,16 +9,16 @@
             @include('components.mentions-bell')
             @if (in_array($myRole, ['owner', 'admin', 'moderator']))
                 <button @click="$dispatch('open-server-settings', { url: '{{ route('servers.edit', $server) }}' })"
-                        class="text-gray-400 hover:text-white text-xs" title="Участники и настройки">👥</button>
+                        class="icon-action text-xs" title="Участники и настройки">👥</button>
             @endif
             @if (in_array($myRole, ['owner', 'admin']))
                 <button @click="$dispatch('open-server-settings', { url: '{{ route('servers.edit', $server) }}' })"
-                        class="text-gray-400 hover:text-white text-xs" title="Настройки сервера">⚙️</button>
+                        class="icon-action icon-gear text-xs" title="Настройки сервера">⚙️</button>
             @endif
             <button
                 x-data
                 @click="navigator.clipboard.writeText('{{ $server->invite_code }}'); $dispatch('notify', 'Код приглашения скопирован')"
-                class="text-gray-400 hover:text-white text-xs" title="Скопировать код приглашения">
+                class="icon-action text-xs" title="Скопировать код приглашения">
                 📋
             </button>
         </div>
@@ -46,7 +46,7 @@
                     </h2>
                     @if (in_array($myRole, ['owner', 'admin']))
                         <button @click="$dispatch('open-create-channel', {{ $category->id }})"
-                                class="text-gray-500 hover:text-white opacity-0 group-hover:opacity-100 text-sm" title="Создать канал">+</button>
+                                class="icon-action opacity-0 group-hover:opacity-100 text-sm" title="Создать канал">+</button>
                     @endif
                 </div>
                 <div class="space-y-0.5">
@@ -74,8 +74,13 @@
         </div>
 
         {{-- Модалка создания канала --}}
-        <div x-show="showCreate" x-cloak class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-            <div @click.outside="showCreate = false" class="bg-[#313338] rounded-lg p-6 w-96">
+        <div x-show="showCreate" x-cloak class="fixed inset-0 bg-black/60 vr-backdrop flex items-center justify-center z-50"
+             x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             @click.self="showCreate = false">
+            <div @click.outside="showCreate = false" class="bg-[#313338] rounded-lg p-6 w-96 shadow-2xl"
+                 x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95">
                 <h3 class="font-semibold mb-4">Создать канал</h3>
                 <form method="POST" action="{{ route('channels.store', $server) }}">
                     @csrf
@@ -102,8 +107,8 @@
                            class="w-full bg-[#1E1F22] rounded px-3 py-2 text-sm outline-none mb-4">
 
                     <div class="flex justify-end gap-2">
-                        <button type="button" @click="showCreate = false" class="text-sm text-gray-400 hover:text-white">Отмена</button>
-                        <button type="submit" class="text-sm bg-[#5865F2] hover:bg-[#4752c4] px-4 py-2 rounded">Создать</button>
+                        <button type="button" @click="showCreate = false" class="btn-lift text-sm text-gray-400 hover:text-white px-3 py-2 rounded">Отмена</button>
+                        <button type="submit" class="btn-lift text-sm bg-[#5865F2] hover:bg-[#4752c4] px-4 py-2 rounded font-medium">Создать</button>
                     </div>
                 </form>
             </div>
@@ -169,7 +174,7 @@
             <p class="text-sm font-medium truncate">{{ Auth::user()->name }}</p>
             <p class="text-xs text-gray-400 truncate">{{ ucfirst(Auth::user()->status) }}</p>
         </div>
-        <a href="{{ route('profile.edit') }}" class="ml-auto text-gray-400 hover:text-white text-sm" title="Настройки профиля">⚙️</a>
+        <a href="{{ route('profile.edit') }}" class="icon-action icon-gear ml-auto text-sm" title="Настройки профиля">⚙️</a>
     </div>
 </aside>
 

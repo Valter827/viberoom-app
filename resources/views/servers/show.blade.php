@@ -37,16 +37,21 @@
 
 {{-- Модалка присоединения к серверу по коду --}}
 <div x-data="{ show: false }" @open-join-modal.window="show = true">
-    <div x-show="show" x-cloak class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-        <div @click.outside="show = false" class="bg-[#313338] rounded-lg p-6 w-96">
+    <div x-show="show" x-cloak class="fixed inset-0 bg-black/60 vr-backdrop flex items-center justify-center z-50"
+         x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         @click.self="show = false">
+        <div @click.outside="show = false" class="bg-[#313338] rounded-lg p-6 w-96 shadow-2xl"
+             x-transition:enter="ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95">
             <h3 class="font-semibold mb-3">Присоединиться к серверу</h3>
             <form method="POST" action="{{ route('servers.join') }}">
                 @csrf
                 <input type="text" name="invite_code" placeholder="Введите код приглашения"
-                       class="w-full bg-[#1E1F22] rounded px-3 py-2 text-sm outline-none mb-3" required>
+                       class="w-full bg-[#1E1F22] rounded px-3 py-2 text-sm outline-none mb-3 transition-shadow focus:ring-2 focus:ring-[#5865F2]" required>
                 <div class="flex justify-end gap-2">
-                    <button type="button" @click="show = false" class="text-sm text-gray-400 hover:text-white">Отмена</button>
-                    <button type="submit" class="text-sm bg-[#5865F2] hover:bg-[#4752c4] px-4 py-2 rounded">Войти</button>
+                    <button type="button" @click="show = false" class="btn-lift text-sm text-gray-400 hover:text-white px-3 py-2 rounded">Отмена</button>
+                    <button type="submit" class="btn-lift text-sm bg-[#5865F2] hover:bg-[#4752c4] px-4 py-2 rounded font-medium">Войти</button>
                 </div>
             </form>
         </div>

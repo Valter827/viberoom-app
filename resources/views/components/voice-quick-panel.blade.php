@@ -123,7 +123,7 @@
         <span class="text-xs text-gray-300">Откл. звук</span>
     </label>
 
-    <button @click="$dispatch('open-voice-settings')" class="flex items-center gap-2 text-xs text-gray-400 hover:text-white">
-        ⚙️ Настройки голоса
+    <button @click="$dispatch('open-voice-settings')" class="group flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors">
+        <span class="inline-block transition-transform duration-300 group-hover:rotate-90">⚙️</span> Настройки голоса
     </button>
 </div>

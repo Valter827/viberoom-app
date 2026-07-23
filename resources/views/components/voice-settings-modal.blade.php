@@ -84,8 +84,20 @@
     }"
     @open-voice-settings.window="open()"
 >
-    <div x-show="show" x-cloak class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-        <div @click.outside="close()" class="bg-[#313338] rounded-lg overflow-hidden w-[520px] max-w-[90vw] flex" style="height: 480px">
+    <div x-show="show" x-cloak class="fixed inset-0 bg-black/60 vr-backdrop flex items-center justify-center z-50"
+         x-transition:enter="ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+        <div @click.outside="close()" class="bg-[#313338] rounded-lg overflow-hidden w-[520px] max-w-[90vw] flex" style="height: 480px"
+             x-transition:enter="ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="ease-in duration-150"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95">
 
             {{-- Левая навигация, как в оконных настройках Discord --}}
             <nav class="w-40 flex-shrink-0 bg-[#2B2D31] p-3">
@@ -104,7 +116,7 @@
             <div class="flex-1 flex flex-col">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-black/20">
                     <h3 class="font-semibold text-lg" x-text="tab === 'voice' ? 'Голос' : 'Уведомления и звуки'"></h3>
-                    <button @click="close()" class="text-gray-400 hover:text-white text-lg" title="Закрыть">✕</button>
+                    <button @click="close()" class="icon-action text-lg" title="Закрыть">✕</button>
                 </div>
 
                 <div class="flex-1 overflow-y-auto p-5">
@@ -166,7 +178,7 @@
                 </div>
 
                 <div class="p-4 border-t border-black/20">
-                    <button @click="close()" class="w-full bg-[#5865F2] hover:bg-[#4752c4] rounded py-2 text-sm font-medium">
+                    <button @click="close()" class="btn-lift w-full bg-[#5865F2] hover:bg-[#4752c4] rounded py-2 text-sm font-medium">
                         Готово
                     </button>
                 </div>
