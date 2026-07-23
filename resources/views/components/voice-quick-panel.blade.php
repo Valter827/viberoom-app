@@ -54,7 +54,7 @@
         saveOutputVolume() { $store.voice.setOutputVolume(this.outputVolume); },
 
         // Короткий тестовый сигнал именно через выбранное устройство вывода —
-        // помогает проверить, что "Динамики" в списке выбраны правильно, не отходя от попапа.
+        // помогает проверить, что «Динамики» в списке выбраны правильно, не отходя от попапа.
         async testOutput() {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
             const osc = ctx.createOscillator();
