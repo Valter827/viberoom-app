@@ -12,8 +12,21 @@
 
     @foreach (Auth::user()->servers as $s)
         @php $sRole = $s->pivot->role; @endphp
-        {{-- Обёртка с собственным x-data — тут же хранится состояние контекстного меню (ПКМ) --}}
-        <div class="relative" x-data="{ menuOpen: false }" @click.outside="menuOpen = false" @keydown.escape.window="menuOpen = false">
+        {{-- Обёртка с собственным x-data — состояние меню (ПКМ) + локальный mute-тумблер --}}
+        <div class="relative"
+             x-data="{
+                menuOpen: false,
+                muted: JSON.parse(localStorage.getItem('muted_servers') || '[]').includes({{ $s->id }}),
+                toggleMute() {
+                    let list = JSON.parse(localStorage.getItem('muted_servers') || '[]');
+                    list = this.muted ? list.filter(id => id !== {{ $s->id }}) : [...list, {{ $s->id }}];
+                    localStorage.setItem('muted_servers', JSON.stringify(list));
+                    this.muted = !this.muted;
+                    $dispatch('notify', this.muted ? 'Сервер заглушён' : 'Звук сервера включён');
+                },
+             }"
+             @click.outside="menuOpen = false"
+             @keydown.escape.window="menuOpen = false">
             <a href="{{ route('servers.show', $s) }}"
                @contextmenu.prevent="menuOpen = true"
                class="group relative w-12 h-12 flex items-center justify-center rounded-full overflow-hidden hover:rounded-2xl transition-all duration-200
@@ -32,8 +45,14 @@
                  x-transition:enter-start="opacity-0 scale-95"
                  x-transition:enter-end="opacity-100 scale-100"
                  @click="menuOpen = false"
-                 class="absolute left-16 top-0 z-50 w-56 bg-[#111214] rounded-lg shadow-2xl py-1.5 text-sm origin-top-left">
+                 class="absolute left-16 top-0 z-50 w-64 bg-[#111214] rounded-lg shadow-2xl py-1.5 text-sm origin-top-left">
                 <p class="px-3 py-1.5 text-xs font-semibold text-gray-500 truncate">{{ $s->name }}</p>
+
+                <button type="button"
+                        @click="navigator.clipboard.writeText('{{ $s->invite_code }}'); $dispatch('notify', 'Код приглашения скопирован')"
+                        class="w-full text-left px-3 py-1.5 text-gray-300 hover:bg-[#5865F2] hover:text-white">
+                    📨 Пригласить людей
+                </button>
 
                 @if (in_array($sRole, ['owner', 'admin', 'moderator']))
                     <a href="{{ route('servers.edit', $s) }}" class="block px-3 py-1.5 text-gray-300 hover:bg-[#5865F2] hover:text-white">
@@ -41,10 +60,29 @@
                     </a>
                 @endif
 
-                <button type="button"
-                        @click="navigator.clipboard.writeText('{{ $s->invite_code }}'); $dispatch('notify', 'Код приглашения скопирован')"
+                @if (isset($server) && $server->id === $s->id && in_array($sRole, ['owner', 'admin']))
+                    <button type="button" @click="$dispatch('open-create-channel', null)"
+                            class="w-full text-left px-3 py-1.5 text-gray-300 hover:bg-[#5865F2] hover:text-white">
+                        ➕ Создать канал
+                    </button>
+                @endif
+
+                <div class="my-1 border-t border-black/30"></div>
+
+                {{-- Отключает только звук упоминаний с этого сервера (localStorage) —
+                     сам счётчик непрочитанных продолжает обновляться, как и в Discord. --}}
+                <button type="button" @click="toggleMute()"
                         class="w-full text-left px-3 py-1.5 text-gray-300 hover:bg-[#5865F2] hover:text-white">
-                    📋 Скопировать код приглашения
+                    <span x-show="!muted">🔕 Заглушить сервер</span>
+                    <span x-show="muted" x-cloak>🔔 Включить звук сервера</span>
+                </button>
+
+                <div class="my-1 border-t border-black/30"></div>
+
+                <button type="button"
+                        @click="navigator.clipboard.writeText('{{ $s->id }}'); $dispatch('notify', 'ID сервера скопирован')"
+                        class="w-full text-left px-3 py-1.5 text-gray-300 hover:bg-[#5865F2] hover:text-white">
+                    🆔 Скопировать ID сервера
                 </button>
 
                 <div class="my-1 border-t border-black/30"></div>

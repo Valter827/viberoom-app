@@ -10,7 +10,11 @@
             if (!res.ok) return;
             const data = await res.json();
             if (!this.firstLoad && data.unread_count > this.unread) {
-                window.Sounds?.mentionReceived();
+                const mutedServers = JSON.parse(localStorage.getItem('muted_servers') || '[]');
+                const latestServerId = data.mentions[0]?.server_id;
+                if (!latestServerId || !mutedServers.includes(latestServerId)) {
+                    window.Sounds?.mentionReceived();
+                }
             }
             this.firstLoad = false;
             this.unread = data.unread_count;
