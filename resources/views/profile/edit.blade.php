@@ -15,12 +15,25 @@
         },
     }"
     class="h-screen flex overflow-hidden"
+    x-init="if (window.top !== window.self) $refs.profileRail?.remove()"
 >
-    @include('servers.partials.server-sidebar')
+    <div x-ref="profileRail">
+        @include('servers.partials.server-sidebar')
+    </div>
 
     <main class="flex-1 flex flex-col bg-[#313338] overflow-y-auto">
-        <div class="h-12 flex items-center px-4 border-b border-black/20 flex-shrink-0 gap-3">
-            <a href="{{ route('dashboard') }}" class="btn-lift text-gray-400 hover:text-white text-sm px-2 py-1 rounded-md hover:bg-[#3a3c42]">← Назад</a>
+        <div class="h-12 flex items-center px-4 border-b border-black/20 flex-shrink-0 gap-3"
+             x-data
+             x-init="
+                if (window.top !== window.self) {
+                    // страница открыта внутри окна-модалки настроек профиля — 'Назад' закрывает окно
+                    $refs.profileBackLink.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        window.parent.postMessage('close-profile-settings', '*');
+                    });
+                }
+             ">
+            <a x-ref="profileBackLink" href="{{ route('dashboard') }}" class="btn-lift text-gray-400 hover:text-white text-sm px-2 py-1 rounded-md hover:bg-[#3a3c42]">← Назад</a>
             <span class="font-semibold">Настройки профиля</span>
         </div>
 

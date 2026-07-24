@@ -174,9 +174,10 @@
             <p class="text-sm font-medium truncate">{{ Auth::user()->name }}</p>
             <p class="text-xs text-gray-400 truncate">{{ ucfirst(Auth::user()->status) }}</p>
         </div>
-        <a href="{{ route('profile.edit') }}" class="icon-action icon-gear ml-auto text-sm" title="Настройки профиля">⚙️</a>
+        <button @click="$dispatch('open-profile-settings')" class="icon-action icon-gear ml-auto text-sm" title="Настройки профиля">⚙️</button>
     </div>
 </aside>
 
 @include('components.voice-settings-modal')
 @include('components.server-settings-modal')
+@include('components.profile-settings-modal')
