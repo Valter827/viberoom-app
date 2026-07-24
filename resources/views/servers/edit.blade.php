@@ -45,6 +45,48 @@
                     Баны
                 </button>
             @endif
+
+            {{-- Выйти/удалить сервер — работает и на обычной странице, и внутри iframe-модалки
+                 настроек (там обычный редирект просто перезагрузил бы содержимое самого iframe,
+                 поэтому здесь запрос уходит через fetch, а переход на дашборд делается через
+                 window.top, чтобы вырваться из окна). --}}
+            <div class="mt-6 pt-4 border-t border-black/20"
+                 x-data="{
+                    busy: false,
+                    async leaveOrDelete(url, confirmText) {
+                        if (!confirm(confirmText) || this.busy) return;
+                        this.busy = true;
+                        try {
+                            const res = await fetch(url, {
+                                method: 'DELETE',
+                                headers: {
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                                    'Accept': 'application/json',
+                                },
+                            });
+                            if (!res.ok) { this.busy = false; alert('Не удалось выполнить действие.'); return; }
+                            const target = '{{ route('dashboard') }}';
+                            (window.top !== window.self ? window.top : window).location.href = target;
+                        } catch (e) {
+                            this.busy = false;
+                            alert('Не удалось выполнить действие.');
+                        }
+                    },
+                 }">
+                @if ($myRole === 'owner')
+                    <button type="button" :disabled="busy"
+                            @click="leaveOrDelete('{{ route('servers.destroy', $server) }}', 'Удалить сервер «{{ $server->name }}» без возможности восстановления?')"
+                            class="w-full text-left px-2 py-1.5 rounded text-sm text-red-400 hover:bg-red-500/10 disabled:opacity-50">
+                        🗑️ Удалить сервер
+                    </button>
+                @else
+                    <button type="button" :disabled="busy"
+                            @click="leaveOrDelete('{{ route('servers.leave', $server) }}', 'Выйти с сервера «{{ $server->name }}»?')"
+                            class="w-full text-left px-2 py-1.5 rounded text-sm text-red-400 hover:bg-red-500/10 disabled:opacity-50">
+                        🚪 Покинуть сервер
+                    </button>
+                @endif
+            </div>
         </nav>
 
         {{-- Центр: содержимое активной вкладки --}}

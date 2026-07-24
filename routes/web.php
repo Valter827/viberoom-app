@@ -50,6 +50,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/servers/{server}', [ServerController::class, 'show'])->name('servers.show');
     Route::get('/servers/{server}/settings', [ServerController::class, 'edit'])->name('servers.edit');
     Route::patch('/servers/{server}', [ServerController::class, 'update'])->name('servers.update');
+    Route::delete('/servers/{server}/leave', [ServerController::class, 'leave'])->name('servers.leave');
+    Route::delete('/servers/{server}', [ServerController::class, 'destroy'])->name('servers.destroy');
     Route::get('/servers/{server}/online-statuses', [ServerController::class, 'onlineStatuses'])->name('servers.online-statuses');
     // --- Участники сервера: роли/кик/бан ---
     Route::patch('/servers/{server}/members/{user}/role', [ServerMemberController::class, 'updateRole'])->name('members.role');

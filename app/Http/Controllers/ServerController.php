@@ -163,6 +163,43 @@ class ServerController extends Controller
     }
 
     /**
+     * Выйти из сервера. Владелец не может просто выйти — сначала нужно
+     * передать права другому участнику (пока не реализовано отдельным экраном)
+     * или удалить сервер целиком через destroy().
+     */
+    public function leave(Server $server): RedirectResponse
+    {
+        $role = $server->roleOf(Auth::id());
+        abort_unless($role, 403, 'Вы не являетесь участником этого сервера.');
+
+        if ($role === 'owner') {
+            return back()->with('error', 'Владелец не может выйти из сервера. Передайте права другому участнику или удалите сервер.');
+        }
+
+        $server->members()->detach(Auth::id());
+
+        return redirect()->route('dashboard')->with('status', 'Вы покинули сервер «' . $server->name . '».');
+    }
+
+    /**
+     * Удалить сервер целиком (только владелец). Каналы, сообщения, участники
+     * и баны удаляются каскадно на уровне БД (см. cascadeOnDelete в миграциях).
+     */
+    public function destroy(Server $server): RedirectResponse
+    {
+        abort_unless($server->roleOf(Auth::id()) === 'owner', 403, 'Удалить сервер может только владелец.');
+
+        if ($server->icon_path) {
+            Storage::disk('public')->delete($server->icon_path);
+        }
+
+        $name = $server->name;
+        $server->delete();
+
+        return redirect()->route('dashboard')->with('status', 'Сервер «' . $name . '» удалён.');
+    }
+
+    /**
      * Проверка: пользователь является участником сервера.
      * В реальном проекте лучше вынести в Policy (ServerPolicy).
      */

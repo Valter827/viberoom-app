@@ -19,5 +19,6 @@
 <body class="h-full bg-[#1E1F22] text-gray-100 antialiased">
     {{ $slot ?? '' }}
     @yield('content')
+    @include('components.toast')
 </body>
 </html>
