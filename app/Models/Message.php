@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Message extends Model
 {
     protected $fillable = [
-        'channel_id', 'user_id', 'parent_id', 'content', 'is_system',
+        'channel_id', 'user_id', 'parent_id', 'content', 'is_system', 'type',
         'attachment_path', 'attachment_type', 'edited_at', 'pinned_at',
     ];
 
@@ -34,6 +34,11 @@ class Message extends Model
     public function reactions()
     {
         return $this->hasMany(MessageReaction::class);
+    }
+
+    public function partyCard()
+    {
+        return $this->hasOne(PartyCard::class);
     }
 
     public function mentions()
@@ -63,6 +68,8 @@ class Message extends Model
             'edited_at' => $this->edited_at?->toIso8601String(),
             'pinned' => (bool) $this->pinned_at,
             'is_system' => (bool) $this->is_system,
+            'type' => $this->type ?? 'text',
+            'party_card' => $this->type === 'party' ? $this->partyCard?->toCardArray() : null,
             'user' => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,

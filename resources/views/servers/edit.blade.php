@@ -31,6 +31,10 @@
                         :class="tab === 'general' ? 'bg-[#404249] text-white' : 'text-gray-400 hover:bg-[#35373c] hover:text-gray-200'">
                     Профиль сервера
                 </button>
+                <button @click="tab = 'features'" class="w-full text-left px-2 py-1.5 rounded text-sm mb-0.5"
+                        :class="tab === 'features' ? 'bg-[#404249] text-white' : 'text-gray-400 hover:bg-[#35373c] hover:text-gray-200'">
+                    Функции
+                </button>
             @endif
 
             <p class="text-xs font-semibold uppercase text-gray-500 px-2 mb-1 mt-4">Люди</p>
@@ -147,6 +151,52 @@
                         </div>
 
                         <button type="submit" class="btn-lift bg-[#5865F2] hover:bg-[#4752c4] rounded px-5 py-2 text-sm font-medium">
+                            Сохранить изменения
+                        </button>
+                    </form>
+                </div>
+                @endif
+
+                {{-- Функции --}}
+                @if (in_array($myRole, ['owner', 'admin']))
+                <div x-show="tab === 'features'" x-cloak>
+                    <h1 class="text-xl font-bold mb-1">Функции сервера</h1>
+                    <p class="text-sm text-gray-400 mb-6">Включайте или выключайте экспериментальные фичи для всех участников сервера.</p>
+
+                    <form method="POST" action="{{ route('servers.features.update', $server) }}">
+                        @csrf
+                        @method('PATCH')
+
+                        <div class="space-y-3">
+                            <label class="vr-card flex items-start gap-3 bg-[#2B2D31] rounded-lg p-4 cursor-pointer">
+                                <input type="checkbox" name="vibe_match_enabled" value="1" {{ $server->vibe_match_enabled ? 'checked' : '' }}
+                                       class="mt-1 w-4 h-4 accent-[#5865F2]">
+                                <div>
+                                    <p class="text-sm font-semibold">🎯 Vibe Match — совпадение интересов</p>
+                                    <p class="text-xs text-gray-400 mt-0.5">Подсвечивает в чате, если у нескольких участников в комнате сейчас совпадают интересы (например, оба ищут во что поиграть или слушают одно и то же).</p>
+                                </div>
+                            </label>
+
+                            <label class="vr-card flex items-start gap-3 bg-[#2B2D31] rounded-lg p-4 cursor-pointer">
+                                <input type="checkbox" name="party_finder_enabled" value="1" {{ $server->party_finder_enabled ? 'checked' : '' }}
+                                       class="mt-1 w-4 h-4 accent-[#5865F2]">
+                                <div>
+                                    <p class="text-sm font-semibold">🎮 Party Finder — карточка пати</p>
+                                    <p class="text-xs text-gray-400 mt-0.5">Позволяет создавать в чате интерактивные карточки сбора команды со слотами вместо сообщений "кто в катку?".</p>
+                                </div>
+                            </label>
+
+                            <label class="vr-card flex items-start gap-3 bg-[#2B2D31] rounded-lg p-4 cursor-pointer">
+                                <input type="checkbox" name="tactical_canvas_enabled" value="1" {{ $server->tactical_canvas_enabled ? 'checked' : '' }}
+                                       class="mt-1 w-4 h-4 accent-[#5865F2]">
+                                <div>
+                                    <p class="text-sm font-semibold">🗺️ Tactical Canvas — тактический оверлей</p>
+                                    <p class="text-xs text-gray-400 mt-0.5">Добавляет выдвижную мини-доску поверх чата с заготовками карт (Dota, CS, Valorant, Rust) для набросков тактики в реальном времени.</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn-lift bg-[#5865F2] hover:bg-[#4752c4] rounded px-5 py-2 text-sm font-medium mt-5">
                             Сохранить изменения
                         </button>
                     </form>

@@ -10,7 +10,16 @@ class Server extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'description', 'icon_path', 'owner_id', 'invite_code'];
+    protected $fillable = [
+        'name', 'description', 'icon_path', 'owner_id', 'invite_code',
+        'vibe_match_enabled', 'party_finder_enabled', 'tactical_canvas_enabled',
+    ];
+
+    protected $casts = [
+        'vibe_match_enabled' => 'boolean',
+        'party_finder_enabled' => 'boolean',
+        'tactical_canvas_enabled' => 'boolean',
+    ];
 
     /**
      * Автогенерация уникального invite_code при создании сервера,

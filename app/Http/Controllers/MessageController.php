@@ -30,7 +30,7 @@ class MessageController extends Controller
                     // подтягиваем недавно отредактированные/закреплённые, чтобы обновить их на клиенте
                     ->orWhere('updated_at', '>=', now()->subMinutes(2));
             })
-            ->with(['user:id,name,avatar_path', 'reactions.user:id,name', 'parent.user:id,name'])
+            ->with(['user:id,name,avatar_path', 'reactions.user:id,name', 'parent.user:id,name', 'partyCard.slots.user:id,name,avatar_path'])
             ->orderBy('id')
             ->limit(100)
             ->get();
@@ -72,7 +72,7 @@ class MessageController extends Controller
 
         $this->createMentions($message, $channel);
 
-        $message->load(['user:id,name,avatar_path', 'reactions.user:id,name', 'parent.user:id,name']);
+        $message->load(['user:id,name,avatar_path', 'reactions.user:id,name', 'parent.user:id,name', 'partyCard.slots.user:id,name,avatar_path']);
 
         // Реал-тайм для остальных участников идёт через polling (см. poll()),
         // поэтому broadcast() здесь больше не нужен — раньше попытка достучаться
@@ -94,7 +94,7 @@ class MessageController extends Controller
 
         $message->update(['content' => $validated['content'], 'edited_at' => now()]);
         $this->createMentions($message, $message->channel);
-        $message->load(['user:id,name,avatar_path', 'reactions.user:id,name', 'parent.user:id,name']);
+        $message->load(['user:id,name,avatar_path', 'reactions.user:id,name', 'parent.user:id,name', 'partyCard.slots.user:id,name,avatar_path']);
 
         return response()->json($message->toChatArray());
     }

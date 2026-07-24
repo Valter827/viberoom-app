@@ -1,9 +1,13 @@
 {{-- Третья колонка: заголовок канала + лента сообщений + форма отправки --}}
-<section class="flex-1 flex flex-col bg-[#313338] min-w-0"
+<section class="flex-1 flex flex-col bg-[#313338] min-w-0 relative"
     x-data="chatChannel({
         channelId: {{ $activeChannel?->id ?? 'null' }},
         currentUserId: {{ Auth::id() }},
-        initialMessages: {{ $messages->map(fn($m) => $m->toChatArray(Auth::id()))->toJson() }}
+        initialMessages: {{ $messages->map(fn($m) => $m->toChatArray(Auth::id()))->toJson() }},
+        vibeMatchEnabled: {{ $activeChannel && $activeChannel->server->vibe_match_enabled ? 'true' : 'false' }},
+        partyFinderEnabled: {{ $activeChannel && $activeChannel->server->party_finder_enabled ? 'true' : 'false' }},
+        tacticalCanvasEnabled: {{ $activeChannel && $activeChannel->server->tactical_canvas_enabled ? 'true' : 'false' }},
+        canModerate: {{ $activeChannel && $activeChannel->server->canModerate(Auth::id()) ? 'true' : 'false' }}
     })"
     x-init="init()">
 
@@ -17,6 +21,60 @@
 
             <button @click="showPinned = !showPinned; if (showPinned) loadPinned()"
                     class="icon-action text-sm" title="Закреплённые сообщения">📌</button>
+
+            <template x-if="vibeMatchEnabled">
+                <div class="relative">
+                    <button @click="showVibeForm = !showVibeForm; if (showVibeForm) loadMyActivity()"
+                            class="icon-action text-sm" title="Что я сейчас делаю (Vibe Match)">🎯</button>
+                    <div x-show="showVibeForm" @click.outside="showVibeForm = false" x-cloak
+                         class="absolute right-0 top-8 bg-[#1E1F22] rounded-lg shadow-2xl p-3 w-72 z-20"
+                         x-transition:enter="ease-out duration-150" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
+                        <p class="text-xs font-semibold uppercase text-gray-400 mb-2">Чем вы сейчас заняты?</p>
+                        <div class="flex gap-1 mb-2">
+                            <button type="button" @click="myActivity.category = 'game'"
+                                    class="flex-1 text-xs py-1.5 rounded" :class="myActivity.category === 'game' ? 'bg-[#5865F2] text-white' : 'bg-[#2B2D31] text-gray-400'">🎮 Играю</button>
+                            <button type="button" @click="myActivity.category = 'lfg'"
+                                    class="flex-1 text-xs py-1.5 rounded" :class="myActivity.category === 'lfg' ? 'bg-[#5865F2] text-white' : 'bg-[#2B2D31] text-gray-400'">🔎 Ищу компанию</button>
+                            <button type="button" @click="myActivity.category = 'music'"
+                                    class="flex-1 text-xs py-1.5 rounded" :class="myActivity.category === 'music' ? 'bg-[#5865F2] text-white' : 'bg-[#2B2D31] text-gray-400'">🎧 Слушаю</button>
+                        </div>
+                        <input type="text" x-model="myActivity.label" maxlength="80"
+                               placeholder="Например: Dota 2 или Interstellar OST"
+                               class="w-full bg-[#2B2D31] rounded px-3 py-1.5 text-sm outline-none mb-2">
+                        <div class="flex justify-end gap-2">
+                            <button type="button" @click="clearActivityStatus()" class="text-xs text-gray-400 hover:text-white px-2 py-1">Убрать статус</button>
+                            <button type="button" @click="saveActivity()" class="text-xs bg-[#5865F2] hover:bg-[#4752c4] px-3 py-1.5 rounded font-medium">Сохранить</button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <template x-if="partyFinderEnabled">
+                <div class="relative">
+                    <button @click="showPartyForm = !showPartyForm" class="icon-action text-sm" title="Создать карточку пати">🎮</button>
+                    <div x-show="showPartyForm" @click.outside="showPartyForm = false" x-cloak
+                         class="absolute right-0 top-8 bg-[#1E1F22] rounded-lg shadow-2xl p-3 w-72 z-20"
+                         x-transition:enter="ease-out duration-150" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
+                        <p class="text-xs font-semibold uppercase text-gray-400 mb-2">Карточка пати</p>
+                        <input type="text" x-model="partyForm.game" maxlength="60" placeholder="Игра (например, Dota 2)"
+                               class="w-full bg-[#2B2D31] rounded px-3 py-1.5 text-sm outline-none mb-2">
+                        <input type="text" x-model="partyForm.mode" maxlength="40" placeholder="Режим (например, Pos 4/5, Ranked)"
+                               class="w-full bg-[#2B2D31] rounded px-3 py-1.5 text-sm outline-none mb-2">
+                        <label class="text-xs text-gray-400 block mb-1">Слотов в команде: <span x-text="partyForm.max_slots"></span></label>
+                        <input type="range" min="2" max="10" x-model.number="partyForm.max_slots" class="w-full mb-2">
+                        <div class="flex justify-end">
+                            <button type="button" @click="submitParty()" :disabled="!partyForm.game.trim()"
+                                    class="text-xs bg-[#5865F2] hover:bg-[#4752c4] disabled:opacity-40 px-3 py-1.5 rounded font-medium">Создать</button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <template x-if="tacticalCanvasEnabled">
+                <button @click="showTactical = !showTactical; showTactical ? openTactical() : closeTactical()"
+                        class="icon-action text-sm" title="Тактический оверлей" :class="showTactical ? 'bg-[#5865F2]/30' : ''">🗺️</button>
+            </template>
+
 
             <div class="relative">
                 <button @click="showSearch = !showSearch; $nextTick(() => showSearch && $refs.searchInput.focus())"
@@ -55,6 +113,17 @@
             </template>
         </div>
 
+        {{-- Плашки Vibe Match: живые пересечения интересов тех, кто сейчас в канале --}}
+        <template x-if="vibeMatchEnabled && vibeMatches.length">
+            <div class="px-4 pt-2 space-y-1.5 flex-shrink-0">
+                <template x-for="m in vibeMatches" :key="m.key">
+                    <div class="text-xs bg-gradient-to-r from-[#5865F2]/20 to-transparent border border-[#5865F2]/30 rounded-lg px-3 py-2 text-[#c9cdfb]">
+                        <span x-text="m.text"></span>
+                    </div>
+                </template>
+            </div>
+        </template>
+
         {{-- Лента сообщений --}}
         <div class="flex-1 overflow-y-auto px-4 py-3" x-ref="messageList">
             <template x-for="msg in messages" :key="msg.id">
@@ -66,8 +135,55 @@
                         </div>
                     </template>
 
+                    {{-- Карточка Пати: интерактивный виджет сбора команды --}}
+                    <template x-if="!msg.is_system && msg.type === 'party'">
+                        <div class="flex items-start gap-3 py-1.5 px-2 -mx-2">
+                            <img :src="msg.user.avatar_url" class="w-10 h-10 rounded-full flex-shrink-0 mt-1 cursor-pointer" @click="openProfile(msg.user.id, $event)">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-baseline gap-2 mb-1.5">
+                                    <span class="font-medium text-sm" x-text="msg.user.name"></span>
+                                    <span class="text-xs text-gray-500" x-text="formatTime(msg.created_at)"></span>
+                                </div>
+                                <div class="rounded-lg border overflow-hidden max-w-sm"
+                                     :class="msg.party_card.status === 'full' ? 'border-emerald-500/50 bg-emerald-500/[0.06]' : (msg.party_card.status === 'cancelled' ? 'border-gray-600 bg-black/10 opacity-60' : 'border-[#5865F2]/40 bg-[#5865F2]/[0.06]')">
+                                    <div class="px-3 py-2 flex items-center justify-between border-b border-white/5">
+                                        <div>
+                                            <p class="text-sm font-semibold" x-text="msg.party_card.game"></p>
+                                            <p class="text-xs text-gray-400" x-show="msg.party_card.mode" x-text="msg.party_card.mode"></p>
+                                        </div>
+                                        <span class="text-xs px-2 py-0.5 rounded-full"
+                                              :class="msg.party_card.status === 'full' ? 'bg-emerald-500/20 text-emerald-400' : (msg.party_card.status === 'cancelled' ? 'bg-gray-500/20 text-gray-400' : 'bg-[#5865F2]/20 text-[#c9cdfb]')"
+                                              x-text="msg.party_card.status === 'full' ? 'Команда собрана' : (msg.party_card.status === 'cancelled' ? 'Отменено' : msg.party_card.filled + '/' + msg.party_card.max_slots)">
+                                        </span>
+                                    </div>
+                                    <div class="p-2 grid grid-cols-5 gap-1.5">
+                                        <template x-for="seat in msg.party_card.seats" :key="seat ? seat.position : Math.random()">
+                                            <div>
+                                                <template x-if="seat">
+                                                    <div class="flex flex-col items-center gap-1 cursor-pointer group/seat" :title="seat.name"
+                                                         @click="seat.user_id === currentUserId && leavePartySlot(msg)">
+                                                        <img :src="seat.avatar_url" class="w-8 h-8 rounded-full" :class="seat.user_id === currentUserId ? 'ring-2 ring-[#5865F2] group-hover/seat:opacity-50' : ''">
+                                                        <span class="text-[9px] text-gray-400 truncate w-full text-center" x-text="seat.name"></span>
+                                                    </div>
+                                                </template>
+                                                <template x-if="!seat">
+                                                    <button type="button" @click="joinPartySlot(msg)"
+                                                            :disabled="msg.party_card.status !== 'open'"
+                                                            class="w-8 h-8 rounded-full border-2 border-dashed border-gray-500 hover:border-[#5865F2] hover:text-[#5865F2] text-gray-500 flex items-center justify-center text-sm mx-auto disabled:opacity-30 disabled:cursor-not-allowed">+</button>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <template x-if="msg.party_card.status === 'open' && (msg.party_card.creator_id === currentUserId || canModerate)">
+                                        <button type="button" @click="cancelParty(msg)" class="w-full text-center text-xs text-red-400 hover:bg-red-500/10 py-1.5 border-t border-white/5">Отменить карточку</button>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
                     {{-- Обычное сообщение --}}
-                    <template x-if="!msg.is_system">
+                    <template x-if="!msg.is_system && msg.type !== 'party'">
                         <div class="group flex items-start gap-3 py-1.5 hover:bg-white/[0.02] px-2 -mx-2 rounded relative">
 
                             {{-- Плашка "в ответ на" --}}
@@ -191,6 +307,10 @@
             </form>
             <p class="text-xs text-gray-500 mt-1" x-show="attachment" x-text="attachment ? 'Прикреплено: ' + attachment.name : ''"></p>
         </div>
+
+        @if ($activeChannel->server->tactical_canvas_enabled)
+            @include('servers.partials.tactical-canvas')
+        @endif
     @else
         <div class="flex-1 flex items-center justify-center text-gray-500">
             На этом сервере пока нет каналов.
@@ -200,10 +320,14 @@
 
 <script>
     // Alpine-компонент чата: получение новых сообщений через polling + отправка через fetch()
-    function chatChannel({ channelId, currentUserId, initialMessages }) {
+    function chatChannel({ channelId, currentUserId, initialMessages, vibeMatchEnabled, partyFinderEnabled, tacticalCanvasEnabled, canModerate }) {
         return {
             channelId,
             currentUserId,
+            vibeMatchEnabled,
+            partyFinderEnabled,
+            tacticalCanvasEnabled,
+            canModerate,
             messages: initialMessages,
             content: '',
             attachment: null,
@@ -219,6 +343,29 @@
             polling: false,
             pollTimer: null,
 
+            // --- Vibe Match ---
+            showVibeForm: false,
+            myActivity: { category: 'game', label: '' },
+            vibeMatches: [],
+            vibeTimer: null,
+
+            // --- Party Finder ---
+            showPartyForm: false,
+            partyForm: { game: '', mode: '', max_slots: 5 },
+
+            // --- Tactical Canvas ---
+            showTactical: false,
+            tacticalMapKey: 'blank',
+            tacticalVersion: 1,
+            tacticalStrokes: [],
+            tacticalTool: 'pen',
+            tacticalColor: '#f23f42',
+            tacticalWidth: 3,
+            tacticalLastId: 0,
+            tacticalPollTimer: null,
+            tacticalDrawing: false,
+            tacticalCurrentPoints: [],
+
             init() {
                 this.scrollToBottom();
                 if (!this.channelId) return;
@@ -228,14 +375,271 @@
                 // постоянно запущенного процесса (Reverb и т.п. не нужны).
                 this.pollTimer = setInterval(() => this.poll(), 1000);
 
+                if (this.vibeMatchEnabled) {
+                    this.vibeHeartbeat();
+                    this.vibeTimer = setInterval(() => this.vibeHeartbeat(), 5000);
+                }
+
                 document.addEventListener('visibilitychange', () => {
                     if (document.hidden) {
                         clearInterval(this.pollTimer);
+                        clearInterval(this.vibeTimer);
                     } else {
                         this.poll();
                         this.pollTimer = setInterval(() => this.poll(), 1000);
+                        if (this.vibeMatchEnabled) {
+                            this.vibeHeartbeat();
+                            this.vibeTimer = setInterval(() => this.vibeHeartbeat(), 5000);
+                        }
                     }
                 });
+            },
+
+            // --- Vibe Match: методы ---
+            async vibeHeartbeat() {
+                try {
+                    const res = await fetch(`/channels/${this.channelId}/vibe/heartbeat`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json',
+                        },
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.vibeMatches = data.matches;
+                    }
+                } catch (e) { /* сеть моргнула — попробуем в следующий раз */ }
+            },
+
+            async loadMyActivity() {
+                const res = await fetch('/vibe/activity', { headers: { 'Accept': 'application/json' } });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.activity) this.myActivity = data.activity;
+                }
+            },
+
+            async saveActivity() {
+                if (!this.myActivity.label.trim()) return;
+                const res = await fetch('/vibe/activity', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify(this.myActivity),
+                });
+                if (res.ok) {
+                    this.showVibeForm = false;
+                    this.vibeHeartbeat();
+                }
+            },
+
+            async clearActivityStatus() {
+                await fetch('/vibe/activity', {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                });
+                this.myActivity = { category: 'game', label: '' };
+                this.showVibeForm = false;
+                this.vibeHeartbeat();
+            },
+
+            // --- Party Finder: методы ---
+            async submitParty() {
+                if (!this.partyForm.game.trim()) return;
+                const res = await fetch(`/channels/${this.channelId}/party-cards`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify(this.partyForm),
+                });
+                if (res.ok) {
+                    const message = await res.json();
+                    this.messages.push(message);
+                    this.lastId = Math.max(this.lastId, message.id);
+                    this.showPartyForm = false;
+                    this.partyForm = { game: '', mode: '', max_slots: 5 };
+                    this.$nextTick(() => this.scrollToBottom());
+                }
+            },
+
+            async joinPartySlot(msg) {
+                const freePosition = msg.party_card.seats.findIndex(s => !s);
+                if (freePosition === -1) return;
+                const res = await fetch(`/party-cards/${msg.party_card.id}/join`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ position: freePosition }),
+                });
+                if (res.ok) {
+                    const card = await res.json();
+                    const wasOpen = msg.party_card.status !== 'full';
+                    msg.party_card = card;
+                    if (wasOpen && card.status === 'full') window.Sounds?.messageReceived();
+                } else if (res.status === 409) {
+                    // кто-то занял слот на долю секунды раньше — подождём ближайший poll
+                }
+            },
+
+            async leavePartySlot(msg) {
+                const res = await fetch(`/party-cards/${msg.party_card.id}/leave`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                });
+                if (res.ok) msg.party_card = await res.json();
+            },
+
+            async cancelParty(msg) {
+                if (!confirm('Отменить карточку пати?')) return;
+                const res = await fetch(`/party-cards/${msg.party_card.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                });
+                if (res.ok) msg.party_card = await res.json();
+            },
+
+            // --- Tactical Canvas: методы ---
+            async openTactical() {
+                const res = await fetch(`/channels/${this.channelId}/tactical`, { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) return;
+                const data = await res.json();
+                this.tacticalMapKey = data.map_key;
+                this.tacticalVersion = data.version;
+                this.tacticalStrokes = data.strokes;
+                this.tacticalLastId = data.strokes.length ? Math.max(...data.strokes.map(s => s.id)) : 0;
+                this.tacticalPollTimer = setInterval(() => this.tacticalPoll(), 1000);
+            },
+
+            closeTactical() {
+                clearInterval(this.tacticalPollTimer);
+            },
+
+            async tacticalPoll() {
+                const res = await fetch(`/channels/${this.channelId}/tactical/poll?after=${this.tacticalLastId}&version=${this.tacticalVersion}`, {
+                    headers: { 'Accept': 'application/json' },
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.reset || data.version !== this.tacticalVersion) {
+                    this.tacticalVersion = data.version;
+                    this.tacticalMapKey = data.map_key;
+                    this.tacticalStrokes = data.strokes;
+                } else if (data.strokes.length) {
+                    this.tacticalStrokes.push(...data.strokes);
+                }
+                if (data.strokes.length) this.tacticalLastId = Math.max(this.tacticalLastId, ...data.strokes.map(s => s.id));
+            },
+
+            async tacticalSetMap(key) {
+                this.tacticalMapKey = key;
+                const res = await fetch(`/channels/${this.channelId}/tactical/map`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ map_key: key }),
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    this.tacticalVersion = data.version;
+                    this.tacticalStrokes = [];
+                    this.tacticalLastId = 0;
+                }
+            },
+
+            async tacticalClear() {
+                const res = await fetch(`/channels/${this.channelId}/tactical/clear`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    this.tacticalVersion = data.version;
+                    this.tacticalStrokes = [];
+                    this.tacticalLastId = 0;
+                }
+            },
+
+            tacticalPointFromEvent(e) {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const point = e.touches ? e.touches[0] : e;
+                return {
+                    x: Math.max(0, Math.min(100, ((point.clientX - rect.left) / rect.width) * 100)),
+                    y: Math.max(0, Math.min(100, ((point.clientY - rect.top) / rect.height) * 100)),
+                };
+            },
+
+            tacticalPointerDown(e) {
+                this.tacticalDrawing = true;
+                this.tacticalCurrentPoints = [this.tacticalPointFromEvent(e)];
+            },
+
+            tacticalPointerMove(e) {
+                if (!this.tacticalDrawing) return;
+                const p = this.tacticalPointFromEvent(e);
+                if (this.tacticalTool === 'pen') {
+                    this.tacticalCurrentPoints.push(p);
+                } else {
+                    // line/arrow — нам нужны только начало и конец
+                    this.tacticalCurrentPoints = [this.tacticalCurrentPoints[0], p];
+                }
+            },
+
+            async tacticalPointerUp() {
+                if (!this.tacticalDrawing) return;
+                this.tacticalDrawing = false;
+                if (this.tacticalCurrentPoints.length < 2) { this.tacticalCurrentPoints = []; return; }
+
+                const stroke = {
+                    tool: this.tacticalTool,
+                    color: this.tacticalColor,
+                    width: this.tacticalWidth,
+                    points: this.tacticalCurrentPoints,
+                };
+                this.tacticalCurrentPoints = [];
+
+                const res = await fetch(`/channels/${this.channelId}/tactical/strokes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify(stroke),
+                });
+                if (res.ok) {
+                    const saved = await res.json();
+                    this.tacticalStrokes.push(saved);
+                    this.tacticalLastId = Math.max(this.tacticalLastId, saved.id);
+                }
+            },
+
+            tacticalPolylinePoints(stroke) {
+                return stroke.points.map(p => `${p.x},${p.y}`).join(' ');
             },
 
             async poll() {
@@ -254,8 +658,14 @@
                     let playSound = false;
                     for (const msg of newMessages) {
                         if (byId.has(msg.id)) {
-                            // обновляем существующее (правка/пин/реакции)
-                            Object.assign(byId.get(msg.id), msg);
+                            const existing = byId.get(msg.id);
+                            // "команда собрана" — проигрываем звук, если карточка пати только что заполнилась
+                            if (msg.type === 'party' && existing.party_card && msg.party_card
+                                && existing.party_card.status !== 'full' && msg.party_card.status === 'full') {
+                                playSound = true;
+                            }
+                            // обновляем существующее (правка/пин/реакции/слоты пати)
+                            Object.assign(existing, msg);
                         } else {
                             this.messages.push(msg);
                             scrolled = true;

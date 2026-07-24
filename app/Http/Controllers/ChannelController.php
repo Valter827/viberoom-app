@@ -23,7 +23,7 @@ class ChannelController extends Controller
 
         // подгружаем последние 50 сообщений канала в хронологическом порядке
         $messages = $channel->messages()
-            ->with(['user:id,name,avatar_path', 'reactions.user:id,name', 'parent.user:id,name'])
+            ->with(['user:id,name,avatar_path', 'reactions.user:id,name', 'parent.user:id,name', 'partyCard.slots.user:id,name,avatar_path'])
             ->latest()->take(50)->get()->reverse()->values();
 
         return view('servers.show', [

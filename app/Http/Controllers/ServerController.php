@@ -163,6 +163,23 @@ class ServerController extends Controller
     }
 
     /**
+     * Включить/выключить новые фичи (Vibe Match, Пати-финдер, Тактический
+     * оверлей) на уровне сервера — доступно только owner/admin.
+     */
+    public function updateFeatures(Request $request, Server $server): RedirectResponse
+    {
+        $this->authorizeAdmin($server);
+
+        $server->update([
+            'vibe_match_enabled' => $request->boolean('vibe_match_enabled'),
+            'party_finder_enabled' => $request->boolean('party_finder_enabled'),
+            'tactical_canvas_enabled' => $request->boolean('tactical_canvas_enabled'),
+        ]);
+
+        return back()->with('status', 'Настройки функций обновлены.');
+    }
+
+    /**
      * Выйти из сервера. Владелец не может просто выйти — сначала нужно
      * передать права другому участнику (пока не реализовано отдельным экраном)
      * или удалить сервер целиком через destroy().

@@ -3,10 +3,13 @@ use App\Http\Controllers\ChannelController;
 use App\Http\Controllers\FriendController;
 use App\Http\Controllers\MentionController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\PartyController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ServerController;
 use App\Http\Controllers\ServerMemberController;
+use App\Http\Controllers\TacticalController;
 use App\Http\Controllers\UserProfileController;
+use App\Http\Controllers\VibeController;
 use App\Http\Controllers\VoiceController;
 use Illuminate\Support\Facades\Route;
 /*
@@ -50,6 +53,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/servers/{server}', [ServerController::class, 'show'])->name('servers.show');
     Route::get('/servers/{server}/settings', [ServerController::class, 'edit'])->name('servers.edit');
     Route::patch('/servers/{server}', [ServerController::class, 'update'])->name('servers.update');
+    Route::patch('/servers/{server}/features', [ServerController::class, 'updateFeatures'])->name('servers.features.update');
     Route::delete('/servers/{server}/leave', [ServerController::class, 'leave'])->name('servers.leave');
     Route::delete('/servers/{server}', [ServerController::class, 'destroy'])->name('servers.destroy');
     Route::get('/servers/{server}/online-statuses', [ServerController::class, 'onlineStatuses'])->name('servers.online-statuses');
@@ -70,6 +74,22 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/messages/{message}', [MessageController::class, 'destroy'])->name('messages.destroy');
     Route::post('/messages/{message}/react', [MessageController::class, 'react'])->name('messages.react');
     Route::post('/messages/{message}/pin', [MessageController::class, 'pin'])->name('messages.pin');
+    // --- Vibe Match: совпадение интересов в комнате ---
+    Route::post('/vibe/activity', [VibeController::class, 'setActivity'])->name('vibe.activity.store');
+    Route::delete('/vibe/activity', [VibeController::class, 'clearActivity'])->name('vibe.activity.clear');
+    Route::get('/vibe/activity', [VibeController::class, 'mine'])->name('vibe.activity.mine');
+    Route::post('/channels/{channel}/vibe/heartbeat', [VibeController::class, 'heartbeat'])->name('vibe.heartbeat');
+    // --- Party Finder: интерактивная карточка сбора команды ---
+    Route::post('/channels/{channel}/party-cards', [PartyController::class, 'store'])->name('party.store');
+    Route::post('/party-cards/{card}/join', [PartyController::class, 'joinSlot'])->name('party.join');
+    Route::post('/party-cards/{card}/leave', [PartyController::class, 'leaveSlot'])->name('party.leave');
+    Route::delete('/party-cards/{card}', [PartyController::class, 'cancel'])->name('party.cancel');
+    // --- Tactical Canvas: тактический оверлей поверх чата ---
+    Route::get('/channels/{channel}/tactical', [TacticalController::class, 'show'])->name('tactical.show');
+    Route::get('/channels/{channel}/tactical/poll', [TacticalController::class, 'poll'])->name('tactical.poll');
+    Route::post('/channels/{channel}/tactical/strokes', [TacticalController::class, 'addStroke'])->name('tactical.strokes.store');
+    Route::patch('/channels/{channel}/tactical/map', [TacticalController::class, 'setMap'])->name('tactical.map.update');
+    Route::post('/channels/{channel}/tactical/clear', [TacticalController::class, 'clear'])->name('tactical.clear');
     // --- Голосовые каналы (presence + polling-сигналинг WebRTC) ---
     Route::post('/channels/{channel}/voice/join', [VoiceController::class, 'join'])->name('voice.join');
     Route::post('/channels/{channel}/voice/heartbeat', [VoiceController::class, 'heartbeat'])->name('voice.heartbeat');
