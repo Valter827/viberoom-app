@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class ChannelPresence extends Model
 {
+    // В таблице нет created_at/updated_at — только last_seen_at,
+    // поэтому отключаем автоматические таймстемпы Eloquent.
+    public $timestamps = false;
+
     protected $fillable = ['channel_id', 'user_id', 'last_seen_at'];
 
     protected $casts = [
