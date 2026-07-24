@@ -40,7 +40,7 @@
                 <p class="text-sm font-medium truncate">{{ Auth::user()->name }}</p>
                 <p class="text-xs text-gray-400 truncate">{{ ucfirst(Auth::user()->status) }}</p>
             </div>
-            <button @click="$dispatch('open-profile-settings')" class="icon-action icon-gear ml-auto text-sm" title="Настройки профиля">⚙️</button>
+            <button x-data @click="$dispatch('open-profile-settings')" class="icon-action icon-gear ml-auto text-sm" title="Настройки профиля">⚙️</button>
         </div>
     </aside>
 

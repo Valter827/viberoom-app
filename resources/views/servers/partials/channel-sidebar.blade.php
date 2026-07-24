@@ -8,11 +8,11 @@
             @php $myRole = $server->members->firstWhere('id', Auth::id())?->pivot->role; @endphp
             @include('components.mentions-bell')
             @if (in_array($myRole, ['owner', 'admin', 'moderator']))
-                <button @click="$dispatch('open-server-settings', { url: '{{ route('servers.edit', $server) }}' })"
+                <button x-data @click="$dispatch('open-server-settings', { url: '{{ route('servers.edit', $server) }}' })"
                         class="icon-action text-xs" title="Участники и настройки">👥</button>
             @endif
             @if (in_array($myRole, ['owner', 'admin']))
-                <button @click="$dispatch('open-server-settings', { url: '{{ route('servers.edit', $server) }}' })"
+                <button x-data @click="$dispatch('open-server-settings', { url: '{{ route('servers.edit', $server) }}' })"
                         class="icon-action icon-gear text-xs" title="Настройки сервера">⚙️</button>
             @endif
             <button
@@ -174,7 +174,7 @@
             <p class="text-sm font-medium truncate">{{ Auth::user()->name }}</p>
             <p class="text-xs text-gray-400 truncate">{{ ucfirst(Auth::user()->status) }}</p>
         </div>
-        <button @click="$dispatch('open-profile-settings')" class="icon-action icon-gear ml-auto text-sm" title="Настройки профиля">⚙️</button>
+        <button x-data @click="$dispatch('open-profile-settings')" class="icon-action icon-gear ml-auto text-sm" title="Настройки профиля">⚙️</button>
     </div>
 </aside>
 

@@ -70,7 +70,7 @@
                             title="Демонстрация экрана">
                         🖥️
                     </button>
-                    <button @click="$dispatch('open-voice-settings')" class="icon-gear btn-lift w-11 h-11 rounded-full flex items-center justify-center bg-[#3a3c42] hover:bg-[#43454b]" title="Настройки голоса">
+                    <button x-data @click="$dispatch('open-voice-settings')" class="icon-gear btn-lift w-11 h-11 rounded-full flex items-center justify-center bg-[#3a3c42] hover:bg-[#43454b]" title="Настройки голоса">
                         ⚙️
                     </button>
                     <button @click="$store.voice.leave()" class="btn-lift w-14 h-11 rounded-full flex items-center justify-center bg-red-600 hover:bg-red-500" title="Покинуть канал">
