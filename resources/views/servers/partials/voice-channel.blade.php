@@ -16,7 +16,7 @@
             <button
                 @click="$store.voice.join({{ $activeChannel->id }}, {{ $server->id }}, {{ Js::from($activeChannel->name) }})"
                 :disabled="$store.voice.connecting"
-                class="bg-[#5865F2] hover:bg-[#4752c4] disabled:opacity-50 px-6 py-3 rounded-lg font-medium">
+                class="btn-lift bg-[#5865F2] hover:bg-[#4752c4] disabled:opacity-50 px-6 py-3 rounded-lg font-medium">
                 <span x-show="!$store.voice.connecting">🔊 Присоединиться к голосовому каналу</span>
                 <span x-show="$store.voice.connecting">Подключение...</span>
             </button>
@@ -28,7 +28,7 @@
                 <div class="flex-1 grid gap-3 p-2 place-content-center"
                      :style="`grid-template-columns: repeat(${Math.min($store.voice.participants.length, 3)}, minmax(180px, 320px))`">
                     <template x-for="p in $store.voice.participants" :key="p.user_id">
-                        <div class="relative bg-[#1a1b1e] rounded-xl aspect-video flex items-center justify-center transition-shadow duration-100 overflow-hidden"
+                        <div class="vr-card relative bg-[#1a1b1e] rounded-xl aspect-video flex items-center justify-center transition-shadow duration-100 overflow-hidden"
                              :class="$store.voice.speaking[p.user_id] ? 'ring-2 ring-emerald-500' : ''">
                             <template x-if="$store.voice.videoStreams[p.user_id]">
                                 <video autoplay playsinline muted
@@ -50,22 +50,22 @@
 
                 {{-- Панель управления снизу, как в référence --}}
                 <div class="flex justify-center gap-3 py-4">
-                    <button @click="$store.voice.toggleMute()" class="w-11 h-11 rounded-full flex items-center justify-center"
+                    <button @click="$store.voice.toggleMute()" class="btn-lift w-11 h-11 rounded-full flex items-center justify-center"
                             :class="$store.voice.muted ? 'bg-red-600 hover:bg-red-500' : 'bg-[#3a3c42] hover:bg-[#43454b]'"
                             title="Микрофон">
                         <span x-text="$store.voice.muted ? '🔇' : '🎙️'"></span>
                     </button>
-                    <button @click="$store.voice.toggleDeafen()" class="w-11 h-11 rounded-full flex items-center justify-center"
+                    <button @click="$store.voice.toggleDeafen()" class="btn-lift w-11 h-11 rounded-full flex items-center justify-center"
                             :class="$store.voice.deafened ? 'bg-red-600 hover:bg-red-500' : 'bg-[#3a3c42] hover:bg-[#43454b]'"
                             title="Звук">
                         <span x-text="$store.voice.deafened ? '🔕' : '🔔'"></span>
                     </button>
-                    <button @click="$store.voice.toggleCamera()" class="w-11 h-11 rounded-full flex items-center justify-center"
+                    <button @click="$store.voice.toggleCamera()" class="btn-lift w-11 h-11 rounded-full flex items-center justify-center"
                             :class="$store.voice.cameraEnabled ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-[#3a3c42] hover:bg-[#43454b]'"
                             title="Камера">
                         📹
                     </button>
-                    <button @click="$store.voice.toggleScreenShare()" class="w-11 h-11 rounded-full flex items-center justify-center"
+                    <button @click="$store.voice.toggleScreenShare()" class="btn-lift w-11 h-11 rounded-full flex items-center justify-center"
                             :class="$store.voice.screenSharing ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-[#3a3c42] hover:bg-[#43454b]'"
                             title="Демонстрация экрана">
                         🖥️
@@ -73,7 +73,7 @@
                     <button @click="$dispatch('open-voice-settings')" class="icon-gear btn-lift w-11 h-11 rounded-full flex items-center justify-center bg-[#3a3c42] hover:bg-[#43454b]" title="Настройки голоса">
                         ⚙️
                     </button>
-                    <button @click="$store.voice.leave()" class="w-14 h-11 rounded-full flex items-center justify-center bg-red-600 hover:bg-red-500" title="Покинуть канал">
+                    <button @click="$store.voice.leave()" class="btn-lift w-14 h-11 rounded-full flex items-center justify-center bg-red-600 hover:bg-red-500" title="Покинуть канал">
                         📞
                     </button>
                 </div>

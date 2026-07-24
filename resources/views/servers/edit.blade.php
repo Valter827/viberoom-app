@@ -21,7 +21,7 @@
                     });
                 }
              ">
-            <a x-ref="backLink" href="{{ route('servers.show', $server) }}" class="flex items-center gap-2 text-gray-400 hover:text-white text-sm px-2 mb-4">
+            <a x-ref="backLink" href="{{ route('servers.show', $server) }}" class="btn-lift flex items-center gap-2 text-gray-400 hover:text-white text-sm px-2 py-1.5 rounded-md hover:bg-[#35373c] mb-4">
                 ← Назад на сервер
             </a>
 
@@ -79,7 +79,7 @@
                         <div class="flex items-center gap-4 mb-6">
                             <img src="{{ $server->iconUrl() }}" class="w-20 h-20 rounded-full object-cover">
                             <div>
-                                <label class="cursor-pointer inline-block text-sm bg-[#4752c4] hover:bg-[#5865F2] px-4 py-2 rounded font-medium">
+                                <label class="btn-lift cursor-pointer inline-block text-sm bg-[#4752c4] hover:bg-[#5865F2] px-4 py-2 rounded font-medium">
                                     Изменить значок сервера
                                     <input type="file" name="icon" accept="image/*" class="hidden">
                                 </label>
@@ -101,10 +101,10 @@
                             <input type="text" value="{{ $server->invite_code }}" readonly
                                    class="flex-1 bg-[#1E1F22] rounded px-3 py-2 text-sm text-gray-400 outline-none">
                             <button type="button" x-data @click="navigator.clipboard.writeText('{{ $server->invite_code }}')"
-                                    class="text-xs bg-[#3a3c42] hover:bg-[#43454b] px-3 py-2 rounded">Копировать</button>
+                                    class="btn-lift text-xs bg-[#3a3c42] hover:bg-[#43454b] px-3 py-2 rounded">Копировать</button>
                         </div>
 
-                        <button type="submit" class="bg-[#5865F2] hover:bg-[#4752c4] rounded px-5 py-2 text-sm font-medium">
+                        <button type="submit" class="btn-lift bg-[#5865F2] hover:bg-[#4752c4] rounded px-5 py-2 text-sm font-medium">
                             Сохранить изменения
                         </button>
                     </form>
@@ -116,10 +116,10 @@
                     <h1 class="text-xl font-bold mb-1">Участники — {{ $server->members->count() }}</h1>
                     <p class="text-sm text-gray-400 mb-6">Управляйте ролями и модерацией участников сервера.</p>
 
-                    <div class="bg-[#2B2D31] rounded-lg divide-y divide-black/20">
+                    <div class="vr-card bg-[#2B2D31] rounded-lg divide-y divide-black/20 overflow-hidden">
                         @foreach ($server->members as $member)
                             @php $role = $member->pivot->role; @endphp
-                            <div class="flex items-center gap-3 px-3 py-2.5">
+                            <div class="flex items-center gap-3 px-3 py-2.5 hover:bg-white/[0.03] transition-colors">
                                 <img src="{{ $member->avatar_url }}" class="w-9 h-9 rounded-full">
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium truncate">{{ $member->name }}</p>
@@ -142,20 +142,20 @@
                                     </form>
                                     <form method="POST" action="{{ route('members.kick', [$server, $member]) }}" onsubmit="return confirm('Исключить {{ $member->name }} с сервера?')">
                                         @csrf @method('DELETE')
-                                        <button class="text-xs text-gray-400 hover:text-white px-2" title="Кикнуть">👢</button>
+                                        <button class="btn-lift text-xs text-gray-400 hover:text-white px-2 py-1 rounded" title="Кикнуть">👢</button>
                                     </form>
                                     <form method="POST" action="{{ route('members.ban', [$server, $member]) }}" onsubmit="return confirm('Забанить {{ $member->name }} на этом сервере?')">
                                         @csrf
-                                        <button class="text-xs text-red-400 hover:text-red-300 px-2" title="Забанить">🔨</button>
+                                        <button class="btn-lift text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded" title="Забанить">🔨</button>
                                     </form>
                                 @elseif (in_array($myRole, ['owner', 'admin', 'moderator']) && $role === 'member' && $member->id !== Auth::id())
                                     <form method="POST" action="{{ route('members.kick', [$server, $member]) }}" onsubmit="return confirm('Исключить {{ $member->name }} с сервера?')">
                                         @csrf @method('DELETE')
-                                        <button class="text-xs text-gray-400 hover:text-white px-2" title="Кикнуть">👢</button>
+                                        <button class="btn-lift text-xs text-gray-400 hover:text-white px-2 py-1 rounded" title="Кикнуть">👢</button>
                                     </form>
                                     <form method="POST" action="{{ route('members.ban', [$server, $member]) }}" onsubmit="return confirm('Забанить {{ $member->name }} на этом сервере?')">
                                         @csrf
-                                        <button class="text-xs text-red-400 hover:text-red-300 px-2" title="Забанить">🔨</button>
+                                        <button class="btn-lift text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded" title="Забанить">🔨</button>
                                     </form>
                                 @endif
                             </div>
@@ -169,9 +169,9 @@
                     <h1 class="text-xl font-bold mb-1">Забаненные пользователи</h1>
                     <p class="text-sm text-gray-400 mb-6">Эти пользователи не могут зайти на сервер даже по коду приглашения.</p>
 
-                    <div class="bg-[#2B2D31] rounded-lg divide-y divide-black/20">
+                    <div class="vr-card bg-[#2B2D31] rounded-lg divide-y divide-black/20 overflow-hidden">
                         @forelse ($server->bans as $ban)
-                            <div class="flex items-center gap-3 px-3 py-2.5">
+                            <div class="flex items-center gap-3 px-3 py-2.5 hover:bg-white/[0.03] transition-colors">
                                 <img src="{{ $ban->user->avatar_url }}" class="w-9 h-9 rounded-full opacity-60">
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium truncate">{{ $ban->user->name }}</p>
@@ -179,7 +179,7 @@
                                 </div>
                                 <form method="POST" action="{{ route('members.unban', [$server, $ban->user]) }}">
                                     @csrf @method('DELETE')
-                                    <button class="text-xs bg-[#3a3c42] hover:bg-[#43454b] px-3 py-1.5 rounded">Разбанить</button>
+                                    <button class="btn-lift text-xs bg-[#3a3c42] hover:bg-[#43454b] px-3 py-1.5 rounded">Разбанить</button>
                                 </form>
                             </div>
                         @empty
@@ -195,7 +195,7 @@
         @if (in_array($myRole, ['owner', 'admin']))
         <aside class="w-72 flex-shrink-0 bg-[#2B2D31] p-4 hidden xl:block" x-show="tab === 'general'" x-cloak>
             <p class="text-xs font-semibold uppercase text-gray-400 mb-2">Предпросмотр</p>
-            <div class="rounded-xl overflow-hidden bg-[#1E1F22]">
+            <div class="vr-card rounded-xl overflow-hidden bg-[#1E1F22]">
                 <div class="h-16 bg-gradient-to-b from-black/40 to-transparent bg-[#5865F2]"></div>
                 <div class="p-3 -mt-8">
                     <img src="{{ $server->iconUrl() }}" class="w-16 h-16 rounded-full border-4 border-[#1E1F22] object-cover mb-2">

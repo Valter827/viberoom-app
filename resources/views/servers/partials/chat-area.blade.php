@@ -16,13 +16,14 @@
             <h2 class="font-semibold flex-1 truncate">{{ $activeChannel->name }}</h2>
 
             <button @click="showPinned = !showPinned; if (showPinned) loadPinned()"
-                    class="text-gray-400 hover:text-white text-sm" title="Закреплённые сообщения">📌</button>
+                    class="icon-action text-sm" title="Закреплённые сообщения">📌</button>
 
             <div class="relative">
                 <button @click="showSearch = !showSearch; $nextTick(() => showSearch && $refs.searchInput.focus())"
-                        class="text-gray-400 hover:text-white text-sm" title="Поиск по сообщениям">🔍</button>
+                        class="icon-action text-sm" title="Поиск по сообщениям">🔍</button>
                 <div x-show="showSearch" @click.outside="showSearch = false" x-cloak
-                     class="absolute right-0 top-8 bg-[#1E1F22] rounded-lg shadow-xl p-2 w-72 z-20">
+                     class="absolute right-0 top-8 bg-[#1E1F22] rounded-lg shadow-2xl p-2 w-72 z-20"
+                     x-transition:enter="ease-out duration-150" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
                     <input x-ref="searchInput" type="text" x-model="searchQuery" @input.debounce.400ms="search()"
                            placeholder="Поиск в #{{ $activeChannel->name }}"
                            class="w-full bg-[#2B2D31] rounded px-3 py-1.5 text-sm outline-none mb-2">
@@ -155,13 +156,13 @@
         {{-- Плашка "ответ на сообщение" над полем ввода --}}
         <div x-show="replyTo" x-cloak class="px-4 flex items-center gap-2 text-xs text-gray-400 flex-shrink-0">
             <span>↪ Ответ пользователю <span class="font-medium" x-text="replyTo?.user?.name"></span></span>
-            <button @click="replyTo = null" class="text-gray-500 hover:text-white">✕</button>
+            <button @click="replyTo = null" class="icon-action !w-5 !h-5 text-xs">✕</button>
         </div>
 
         {{-- Форма отправки сообщения --}}
         <div class="px-4 pb-6 pt-2 flex-shrink-0">
-            <form @submit.prevent="send" class="relative flex items-center bg-[#383A40] rounded-lg px-3 py-2.5">
-                <label class="cursor-pointer text-gray-400 hover:text-white mr-3" title="Прикрепить файл">
+            <form @submit.prevent="send" class="relative flex items-center bg-[#383A40] rounded-lg px-3 py-2.5 transition-shadow focus-within:ring-2 focus-within:ring-[#5865F2]/60">
+                <label class="icon-action mr-3" title="Прикрепить файл">
                     📎
                     <input type="file" class="hidden" @change="attachment = $event.target.files[0]">
                 </label>
@@ -175,9 +176,10 @@
 
                 {{-- Простой набор эмодзи-кнопок --}}
                 <div class="relative ml-2" x-data="{ open: false }">
-                    <button type="button" @click="open = !open" class="text-gray-400 hover:text-white">🙂</button>
+                    <button type="button" @click="open = !open" class="icon-action">🙂</button>
                     <div x-show="open" @click.outside="open = false" x-cloak
-                         class="absolute bottom-8 right-0 bg-[#2B2D31] p-2 rounded-lg shadow-lg grid grid-cols-6 gap-1 z-10">
+                         class="absolute bottom-8 right-0 bg-[#2B2D31] p-2 rounded-lg shadow-2xl grid grid-cols-6 gap-1 z-10"
+                         x-transition:enter="ease-out duration-150" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
                         @foreach (["\u{1F600}","\u{1F602}","\u{1F60D}","\u{1F44D}","\u{1F525}","\u{1F389}","\u{1F622}","\u{1F62E}","\u{2764}\u{FE0F}","\u{1F64C}","\u{1F60E}","\u{1F914}"] as $emoji)
                             <button type="button" @click="content += '{{ $emoji }}'; open = false"
                                     class="text-lg hover:bg-white/10 rounded p-1">{{ $emoji }}</button>
@@ -185,7 +187,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="ml-2 text-[#5865F2] hover:text-white font-medium text-sm">Отправить</button>
+                <button type="submit" class="btn-lift ml-2 px-3 py-1.5 rounded-md text-[#5865F2] hover:text-white hover:bg-[#5865F2] font-medium text-sm">Отправить</button>
             </form>
             <p class="text-xs text-gray-500 mt-1" x-show="attachment" x-text="attachment ? 'Прикреплено: ' + attachment.name : ''"></p>
         </div>

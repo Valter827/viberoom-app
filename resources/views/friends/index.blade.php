@@ -60,14 +60,14 @@
             @endif
 
             {{-- Форма добавления в друзья --}}
-            <div class="bg-[#2B2D31] rounded-lg p-4 mb-6">
+            <div class="vr-card bg-[#2B2D31] rounded-lg p-4 mb-6">
                 <h2 class="text-sm font-semibold mb-1">Добавить в друзья</h2>
                 <p class="text-xs text-gray-400 mb-3">Можно добавить друга по его имени пользователя.</p>
                 <form method="POST" action="{{ route('friends.store') }}" class="flex gap-2">
                     @csrf
                     <input type="text" name="username" placeholder="Введите имя пользователя" required
                            class="flex-1 bg-[#1E1F22] rounded px-3 py-2 text-sm outline-none">
-                    <button type="submit" class="bg-[#5865F2] hover:bg-[#4752c4] px-4 py-2 rounded text-sm font-medium whitespace-nowrap">
+                    <button type="submit" class="btn-lift bg-[#5865F2] hover:bg-[#4752c4] px-4 py-2 rounded text-sm font-medium whitespace-nowrap">
                         Отправить заявку
                     </button>
                 </form>
@@ -81,7 +81,7 @@
                 <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2">Входящие заявки — {{ $incoming->count() }}</h3>
                 <div class="space-y-1 mb-6">
                     @foreach ($incoming as $request)
-                        <div class="flex items-center gap-3 bg-[#2B2D31] rounded-lg px-3 py-2">
+                        <div class="vr-card flex items-center gap-3 bg-[#2B2D31] rounded-lg px-3 py-2">
                             <img src="{{ $request->requester->avatar_url }}" class="w-9 h-9 rounded-full">
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-medium truncate">{{ $request->requester->name }}</p>
@@ -89,11 +89,11 @@
                             </div>
                             <form method="POST" action="{{ route('friends.accept', $request->requester) }}">
                                 @csrf
-                                <button class="w-9 h-9 rounded-full bg-[#3a3c42] hover:bg-emerald-600 flex items-center justify-center" title="Принять">✓</button>
+                                <button class="btn-lift w-9 h-9 rounded-full bg-[#3a3c42] hover:bg-emerald-600 flex items-center justify-center" title="Принять">✓</button>
                             </form>
                             <form method="POST" action="{{ route('friends.decline', $request->requester) }}">
                                 @csrf
-                                <button class="w-9 h-9 rounded-full bg-[#3a3c42] hover:bg-red-600 flex items-center justify-center" title="Отклонить">✕</button>
+                                <button class="btn-lift w-9 h-9 rounded-full bg-[#3a3c42] hover:bg-red-600 flex items-center justify-center" title="Отклонить">✕</button>
                             </form>
                         </div>
                     @endforeach
@@ -105,7 +105,7 @@
                 <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2">Исходящие заявки — {{ $outgoing->count() }}</h3>
                 <div class="space-y-1 mb-6">
                     @foreach ($outgoing as $request)
-                        <div class="flex items-center gap-3 bg-[#2B2D31] rounded-lg px-3 py-2">
+                        <div class="vr-card flex items-center gap-3 bg-[#2B2D31] rounded-lg px-3 py-2">
                             <img src="{{ $request->recipient->avatar_url }}" class="w-9 h-9 rounded-full opacity-70">
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-medium truncate">{{ $request->recipient->name }}</p>
@@ -113,7 +113,7 @@
                             </div>
                             <form method="POST" action="{{ route('friends.decline', $request->recipient) }}">
                                 @csrf
-                                <button class="text-xs text-gray-400 hover:text-red-400">Отменить</button>
+                                <button class="btn-lift text-xs text-gray-400 hover:text-red-400 px-2 py-1 rounded">Отменить</button>
                             </form>
                         </div>
                     @endforeach
@@ -127,7 +127,7 @@
             @else
                 <div class="space-y-1">
                     @foreach ($friends as $friend)
-                        <div class="flex items-center gap-3 bg-[#2B2D31] hover:bg-[#35373c] rounded-lg px-3 py-2 cursor-pointer"
+                        <div class="flex items-center gap-3 bg-[#2B2D31] hover:bg-[#35373c] rounded-lg px-3 py-2 cursor-pointer transition-colors"
                              onclick="openProfile({{ $friend->id }}, event)">
                             <div class="relative">
                                 <img src="{{ $friend->avatar_url }}" class="w-9 h-9 rounded-full">
@@ -140,7 +140,7 @@
                             <form method="POST" action="{{ route('friends.destroy', $friend) }}" onclick="event.stopPropagation()">
                                 @csrf
                                 @method('DELETE')
-                                <button class="text-xs text-gray-400 hover:text-red-400" onclick="return confirm('Удалить {{ $friend->name }} из друзей?')">Удалить</button>
+                                <button class="btn-lift text-xs text-gray-400 hover:text-red-400 px-2 py-1 rounded" onclick="return confirm('Удалить {{ $friend->name }} из друзей?')">Удалить</button>
                             </form>
                         </div>
                     @endforeach

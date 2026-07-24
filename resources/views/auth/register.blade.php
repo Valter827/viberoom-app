@@ -154,7 +154,7 @@
                 </p>
 
                 <button type="submit"
-                        class="w-full rounded-md bg-[#a6b2fb] hover:bg-[#95a3f9] text-[#20232b] font-semibold text-sm py-2.5 transition-colors">
+                        class="btn-lift w-full rounded-md bg-[#a6b2fb] hover:bg-[#95a3f9] text-[#20232b] font-semibold text-sm py-2.5">
                     Создать учётную запись
                 </button>
 

@@ -20,14 +20,14 @@
 
     <main class="flex-1 flex flex-col bg-[#313338] overflow-y-auto">
         <div class="h-12 flex items-center px-4 border-b border-black/20 flex-shrink-0 gap-3">
-            <a href="{{ route('dashboard') }}" class="text-gray-400 hover:text-white text-sm">← Назад</a>
+            <a href="{{ route('dashboard') }}" class="btn-lift text-gray-400 hover:text-white text-sm px-2 py-1 rounded-md hover:bg-[#3a3c42]">← Назад</a>
             <span class="font-semibold">Настройки профиля</span>
         </div>
 
         <div class="p-6 max-w-4xl mx-auto w-full grid md:grid-cols-2 gap-6">
 
             {{-- Левая колонка: форма редактирования --}}
-            <div class="bg-[#2B2D31] rounded-lg p-6">
+            <div class="vr-card bg-[#2B2D31] rounded-lg p-6">
                 <h2 class="text-xs font-semibold uppercase text-gray-400 mb-4">Основной профиль</h2>
 
                 @if (session('status'))
@@ -54,7 +54,7 @@
                         <label class="block text-xs font-semibold uppercase text-gray-400 mb-2">Аватар</label>
                         <div class="flex items-center gap-3">
                             <img :src="avatarPreview" class="w-16 h-16 rounded-full object-cover">
-                            <label class="cursor-pointer text-xs bg-[#3a3c42] hover:bg-[#43454b] px-3 py-2 rounded">
+                            <label class="btn-lift cursor-pointer text-xs bg-[#3a3c42] hover:bg-[#43454b] px-3 py-2 rounded">
                                 Изменить
                                 <input type="file" name="avatar" accept="image/*" class="hidden" @change="onAvatarChange">
                             </label>
@@ -103,7 +103,7 @@
                         </select>
                     </div>
 
-                    <button type="submit" class="w-full bg-[#5865F2] hover:bg-[#4752c4] rounded py-2 text-sm font-medium">
+                    <button type="submit" class="btn-lift w-full bg-[#5865F2] hover:bg-[#4752c4] rounded py-2 text-sm font-medium">
                         Сохранить
                     </button>
                 </form>
