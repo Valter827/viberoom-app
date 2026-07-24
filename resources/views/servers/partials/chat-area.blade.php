@@ -642,6 +642,28 @@
                 return stroke.points.map(p => `${p.x},${p.y}`).join(' ');
             },
 
+            // Строим разметку штрихов строкой (а не через x-for) — Alpine ломает
+            // scope переменной цикла внутри <svg>, см. комментарий в blade-файле.
+            renderTacticalStrokes() {
+                const esc = (v) => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+                const polyline = (points, color, width, tool, opacity) => {
+                    const marker = tool === 'arrow' ? ' marker-end="url(#arrowhead)"' : '';
+                    const op = opacity ? ` opacity="${opacity}"` : '';
+                    return `<polyline points="${esc(points)}" fill="none" stroke="${esc(color)}" stroke-width="${Number(width) * 0.35}" stroke-linecap="round" stroke-linejoin="round"${marker}${op}></polyline>`;
+                };
+
+                let svg = this.tacticalStrokes
+                    .map(s => polyline(this.tacticalPolylinePoints(s), s.color, s.width, s.tool))
+                    .join('');
+
+                if (this.tacticalDrawing && this.tacticalCurrentPoints.length > 1) {
+                    const points = this.tacticalCurrentPoints.map(p => `${p.x},${p.y}`).join(' ');
+                    svg += polyline(points, this.tacticalColor, this.tacticalWidth, this.tacticalTool, 0.85);
+                }
+
+                return svg;
+            },
+
             async poll() {
                 if (this.polling) return; // не даём запросам копиться друг на друга при 1-сек интервале
                 this.polling = true;

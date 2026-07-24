@@ -109,19 +109,10 @@
                     <polygon points="0 0, 4 2, 0 4" fill="context-stroke"/>
                 </marker>
             </defs>
-            <template x-for="stroke in tacticalStrokes" :key="stroke.id ?? Math.random()">
-                <polyline :points="tacticalPolylinePoints(stroke)" fill="none"
-                          :stroke="stroke.color" :stroke-width="stroke.width * 0.35"
-                          stroke-linecap="round" stroke-linejoin="round"
-                          :marker-end="stroke.tool === 'arrow' ? 'url(#arrowhead)' : null"/>
-            </template>
-            {{-- текущий, ещё не отправленный штрих --}}
-            <template x-if="tacticalDrawing && tacticalCurrentPoints.length > 1">
-                <polyline :points="tacticalCurrentPoints.map(p => p.x + ',' + p.y).join(' ')" fill="none"
-                          :stroke="tacticalColor" :stroke-width="tacticalWidth * 0.35"
-                          stroke-linecap="round" stroke-linejoin="round" opacity="0.85"
-                          :marker-end="tacticalTool === 'arrow' ? 'url(#arrowhead)' : null"/>
-            </template>
+            {{-- Alpine's x-for теряет scope переменной внутри <svg> (известный баг:
+                 https://github.com/alpinejs/alpine/issues/2078), поэтому штрихи
+                 рендерим не через x-for/x-if, а строкой через x-html --}}
+            <g x-html="renderTacticalStrokes()"></g>
         </svg>
     </div>
 </div>
