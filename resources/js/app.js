@@ -110,34 +110,24 @@ window.Sounds = Sounds;
  */
 document.addEventListener('alpine:init', () => {
     /**
-     * Общее состояние "какое контекстное меню сейчас открыто" (сервер/канал).
+     * Общее состояние — только КЛЮЧ элемента (канал/сервер), чьё меню сейчас
+     * активно. Координаты, факт открытия и режим переименования каждый элемент
+     * хранит у себя локально (в своём x-data), чтобы разные меню не могли
+     * "склеиться" друг с другом или получить чужие координаты.
+     *
      * Правый клик по одному пункту должен закрывать меню, открытое у другого —
      * а обычный @click.outside этого не делает, потому что реагирует только
-     * на 'click', а не на 'contextmenu'.
+     * на 'click', а не на 'contextmenu'. Поэтому каждый элемент подписывается
+     * на activeKey через $watch и сам закрывается, если активен не он.
      */
     Alpine.store('contextMenu', {
-        openId: null,
-        renamingId: null,
-        x: 0,
-        y: 0,
-        open(id, x, y) {
-            this.openId = id;
-            this.renamingId = null;
-            this.x = x;
-            this.y = y;
+        activeKey: null,
+        activate(key) {
+            this.activeKey = key;
         },
-        close(id = null) {
-            if (id === null || this.openId === id) {
-                this.openId = null;
-            }
-        },
-        startRename(id) {
-            this.openId = null;
-            this.renamingId = id;
-        },
-        stopRename(id = null) {
-            if (id === null || this.renamingId === id) {
-                this.renamingId = null;
+        deactivate(key) {
+            if (this.activeKey === key) {
+                this.activeKey = null;
             }
         },
     });

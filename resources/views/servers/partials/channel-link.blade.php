@@ -1,10 +1,37 @@
 @php
     $isActive = isset($activeChannel) && $activeChannel && $activeChannel->id === $channel->id;
     $canManageChannel = isset($myRole) && in_array($myRole, ['owner', 'admin']);
+    $channelKey = 'channel-' . $channel->id;
 @endphp
 <div class="relative"
      x-data="{
+        key: @js($channelKey),
         newName: @js($channel->name),
+        menuOpen: false,
+        renaming: false,
+        menuX: 0,
+        menuY: 0,
+        openMenu(e) {
+            $store.contextMenu.activate(this.key);
+            this.menuOpen = true;
+            this.renaming = false;
+            this.menuX = e.clientX;
+            this.menuY = e.clientY;
+        },
+        closeMenu() {
+            this.menuOpen = false;
+            $store.contextMenu.deactivate(this.key);
+        },
+        startRename() {
+            this.menuOpen = false;
+            this.renaming = true;
+            $store.contextMenu.activate(this.key);
+            $nextTick(() => $refs.renameInput.focus());
+        },
+        stopRename() {
+            this.renaming = false;
+            $store.contextMenu.deactivate(this.key);
+        },
         async saveRename() {
             const name = this.newName.trim();
             if (!name) return;
@@ -24,10 +51,11 @@
             }
         },
      }"
-     @keydown.escape.window="$store.contextMenu.close('channel-{{ $channel->id }}'); $store.contextMenu.stopRename('channel-{{ $channel->id }}')">
+     x-init="$watch('$store.contextMenu.activeKey', (v) => { if (v !== key) { menuOpen = false; renaming = false; } })"
+     @keydown.escape.window="menuOpen = false; renaming = false; $store.contextMenu.deactivate(key)">
 
     <a href="{{ route('channels.show', [$channel->server_id, $channel]) }}"
-       @contextmenu.prevent="$store.contextMenu.open('channel-{{ $channel->id }}', $event.clientX, $event.clientY)"
+       @contextmenu.prevent="openMenu($event)"
        class="flex items-center px-2 py-1.5 rounded text-sm text-gray-300 hover:bg-[#3a3c42] hover:text-white transition-colors
               {{ $isActive ? 'bg-[#404249] text-white' : '' }}">
         <span class="mr-1.5 text-gray-500">{{ $channel->isVoice() ? '🔊' : '#' }}</span>
@@ -38,27 +66,26 @@
          Телепортируется в <body> — иначе overflow-y-auto списка каналов
          обрезает меню, если оно выходит за границы узкой колонки. --}}
     <template x-teleport="body">
-    <div x-show="$store.contextMenu.openId === 'channel-{{ $channel->id }}'" x-cloak
+    <div x-show="menuOpen" x-cloak
          x-transition:enter="ease-out duration-100"
          x-transition:enter-start="opacity-0 scale-95"
          x-transition:enter-end="opacity-100 scale-100"
-         @click="$store.contextMenu.close()"
-         @click.outside="$store.contextMenu.close('channel-{{ $channel->id }}')"
-         :style="`top: ${$store.contextMenu.y}px; left: ${$store.contextMenu.x}px;`"
+         @click.outside="closeMenu()"
+         :style="`top: ${menuY}px; left: ${menuX}px;`"
          class="fixed z-50 w-60 bg-[#111214] rounded-lg shadow-2xl py-1.5 text-sm origin-top-left">
         <p class="px-3 py-1.5 text-xs font-semibold text-gray-500 truncate">
             {{ $channel->isVoice() ? '🔊' : '#' }} {{ $channel->name }}
         </p>
 
         <button type="button"
-                @click="navigator.clipboard.writeText(window.location.origin + '{{ route('channels.show', [$channel->server_id, $channel], false) }}'); $dispatch('notify', 'Ссылка на канал скопирована')"
+                @click="navigator.clipboard.writeText(window.location.origin + '{{ route('channels.show', [$channel->server_id, $channel], false) }}'); $dispatch('notify', 'Ссылка на канал скопирована'); closeMenu()"
                 class="w-full text-left px-3 py-1.5 text-gray-300 hover:bg-[#5865F2] hover:text-white">
             🔗 Скопировать ссылку на канал
         </button>
 
         @if ($canManageChannel)
             <button type="button"
-                    @click="$store.contextMenu.startRename('channel-{{ $channel->id }}'); $nextTick(() => $refs.renameInput.focus())"
+                    @click="startRename()"
                     class="w-full text-left px-3 py-1.5 text-gray-300 hover:bg-[#5865F2] hover:text-white">
                 ✏️ Изменить название
             </button>
@@ -80,17 +107,17 @@
     {{-- Панель переименования канала (тоже телепортируется — та же причина) --}}
     @if ($canManageChannel)
         <template x-teleport="body">
-        <div x-show="$store.contextMenu.renamingId === 'channel-{{ $channel->id }}'" x-cloak
-             @click.outside="$store.contextMenu.stopRename('channel-{{ $channel->id }}')"
-             :style="`top: ${$store.contextMenu.y}px; left: ${$store.contextMenu.x}px;`"
+        <div x-show="renaming" x-cloak
+             @click.outside="stopRename()"
+             :style="`top: ${menuY}px; left: ${menuX}px;`"
              class="fixed z-50 w-64 bg-[#111214] rounded-lg shadow-2xl p-3 text-sm origin-top-left">
             <label class="block text-xs font-semibold uppercase text-gray-400 mb-1">Название канала</label>
             <input x-ref="renameInput" x-model="newName"
-                   @keydown.enter="saveRename()" @keydown.escape="$store.contextMenu.stopRename('channel-{{ $channel->id }}')"
+                   @keydown.enter="saveRename()" @keydown.escape="stopRename()"
                    type="text" maxlength="50"
                    class="w-full bg-[#1E1F22] rounded px-2 py-1.5 text-sm outline-none mb-2">
             <div class="flex justify-end gap-2">
-                <button type="button" @click="$store.contextMenu.stopRename('channel-{{ $channel->id }}')" class="px-3 py-1 text-xs text-gray-400 hover:text-white">Отмена</button>
+                <button type="button" @click="stopRename()" class="px-3 py-1 text-xs text-gray-400 hover:text-white">Отмена</button>
                 <button type="button" @click="saveRename()" class="px-3 py-1 text-xs bg-[#5865F2] hover:bg-[#4752c4] rounded">Сохранить</button>
             </div>
         </div>
