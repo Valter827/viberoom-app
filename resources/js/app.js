@@ -109,6 +109,28 @@ window.Sounds = Sounds;
  * видимой и активной на любой странице сервера.
  */
 document.addEventListener('alpine:init', () => {
+    /**
+     * Общее состояние "какое контекстное меню сейчас открыто" (сервер/канал).
+     * Правый клик по одному пункту должен закрывать меню, открытое у другого —
+     * а обычный @click.outside этого не делает, потому что реагирует только
+     * на 'click', а не на 'contextmenu'.
+     */
+    Alpine.store('contextMenu', {
+        openId: null,
+        x: 0,
+        y: 0,
+        open(id, x, y) {
+            this.openId = id;
+            this.x = x;
+            this.y = y;
+        },
+        close(id = null) {
+            if (id === null || this.openId === id) {
+                this.openId = null;
+            }
+        },
+    });
+
     Alpine.store('voice', {
         channelId: null,
         channelName: '',
