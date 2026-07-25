@@ -144,6 +144,7 @@ document.addEventListener('alpine:init', () => {
         participants: [],
         speaking: {},
         peers: {},
+        connectionState: {}, // userId -> 'connecting'|'connected'|'disconnected'|'failed' (для индикатора в UI)
         audioEls: {},
         localStream: null,
         // Видео: камера и демонстрация экрана используют один и тот же "видео слот"
@@ -184,6 +185,29 @@ document.addEventListener('alpine:init', () => {
             return deviceId ? { ...base, deviceId: { exact: deviceId } } : base;
         },
 
+        // Переводим технические ошибки getUserMedia в понятные подсказки —
+        // "Permission denied" ничего не говорит обычному пользователю о том, что делать дальше.
+        describeMicError(e) {
+            if (location.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(location.hostname)) {
+                return 'Браузер блокирует доступ к микрофону, потому что сайт открыт не по HTTPS. Голосовые каналы работают только на защищённом соединении (https://).';
+            }
+            switch (e.name) {
+                case 'NotAllowedError':
+                case 'PermissionDeniedError':
+                    return 'Доступ к микрофону заблокирован. Разрешите использование микрофона для этого сайта в настройках браузера (значок замка/микрофона в адресной строке) и попробуйте снова.';
+                case 'NotFoundError':
+                case 'DevicesNotFoundError':
+                    return 'Микрофон не найден. Проверьте, что устройство подключено и не занято другим приложением, затем попробуйте снова.';
+                case 'NotReadableError':
+                case 'TrackStartError':
+                    return 'Не удалось получить доступ к микрофону — возможно, он уже используется другим приложением (Zoom, OBS и т.п.). Закройте его и попробуйте снова.';
+                case 'OverconstrainedError':
+                    return 'Выбранный микрофон недоступен с текущими настройками. Проверьте выбранное устройство в настройках голоса.';
+                default:
+                    return 'Не удалось получить доступ к микрофону: ' + (e.message || e.name || 'неизвестная ошибка');
+            }
+        },
+
         getCameraConstraints() {
             const deviceId = localStorage.getItem('video_camera_device');
             const base = { width: { ideal: 1280 }, height: { ideal: 720 } };
@@ -205,16 +229,38 @@ document.addEventListener('alpine:init', () => {
          * "Громкость микрофона" реально влиял на передаваемый звук, а не
          * только на локальный тест. Возвращает поток с обработанным треком,
          * который и уходит в RTCPeerConnection.
+         *
+         * ВАЖНО: AudioContext создаётся в состоянии 'suspended' в части браузеров
+         * (особенно если между кликом "Присоединиться" и созданием контекста прошло
+         * время на await getUserMedia()/разрешение доступа к микрофону). Пока контекст
+         * не "разбужен" через resume(), граф узлов не обрабатывает звук — исходящий
+         * MediaStreamDestination молча отдаёт тишину, хотя permission выдан и трек
+         * физически существует. Это и была причина "микрофон не работает": собеседник
+         * подключался, видел участника в звонке, но не слышал ни звука.
          */
-        buildOutgoingStream(rawStream) {
-            this.micCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const source = this.micCtx.createMediaStreamSource(rawStream);
-            this.micGainNode = this.micCtx.createGain();
-            this.micGainNode.gain.value = (parseInt(localStorage.getItem('voice_mic_volume') || '100')) / 100;
-            const destination = this.micCtx.createMediaStreamDestination();
-            source.connect(this.micGainNode);
-            this.micGainNode.connect(destination);
-            return destination.stream;
+        async buildOutgoingStream(rawStream) {
+            try {
+                this.micCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const source = this.micCtx.createMediaStreamSource(rawStream);
+                this.micGainNode = this.micCtx.createGain();
+                this.micGainNode.gain.value = (parseInt(localStorage.getItem('voice_mic_volume') || '100')) / 100;
+                const destination = this.micCtx.createMediaStreamDestination();
+                source.connect(this.micGainNode);
+                this.micGainNode.connect(destination);
+
+                if (this.micCtx.state === 'suspended') {
+                    await this.micCtx.resume();
+                }
+
+                return destination.stream;
+            } catch (e) {
+                // Web Audio недоступен/упал — отдаём сырой поток напрямую, чтобы звонок
+                // всё равно работал (просто без ползунка громкости микрофона).
+                if (this.micCtx) { try { this.micCtx.close(); } catch (_) {} }
+                this.micCtx = null;
+                this.micGainNode = null;
+                return rawStream;
+            }
         },
 
         setMicVolume(value) {
@@ -234,10 +280,10 @@ document.addEventListener('alpine:init', () => {
             this.connecting = true;
             try {
                 this.localStream = await navigator.mediaDevices.getUserMedia({ audio: this.getMicConstraints(), video: false });
-                this.outgoingStream = this.buildOutgoingStream(this.localStream);
+                this.outgoingStream = await this.buildOutgoingStream(this.localStream);
             } catch (e) {
                 this.connecting = false;
-                if (!silent) alert('Не удалось получить доступ к микрофону: ' + e.message);
+                if (!silent) alert(this.describeMicError(e));
                 sessionStorage.removeItem('voice_session');
                 return;
             }
@@ -429,15 +475,32 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        // Один STUN-сервер — частая причина "звонок не работает у некоторых людей":
+        // за более строгим NAT (мобильная сеть, часть офисных/учебных сетей) прямое
+        // P2P-соединение через один STUN не устанавливается вообще, и трафик (в т.ч. звук
+        // с микрофона) просто никуда не уходит — без единой ошибки в консоли. Несколько
+        // STUN для надёжности + публичный TURN-релей (Open Relay Project) как запасной
+        // путь, когда прямое соединение невозможно.
+        iceServerConfig() {
+            return [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+            ];
+        },
+
         connectTo(userId, isInitiator) {
             if (this.peers[userId]) return;
 
-            const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+            const pc = new RTCPeerConnection({ iceServers: this.iceServerConfig() });
             // "Вежливая" сторона при коллизии офферов (оба одновременно пере-согласовывают
             // соединение, например включили камеру в один момент) уступает и откатывает
             // свой оффер — иначе один из offer/answer обменов падает с "wrong state".
             pc.isPolite = !isInitiator;
             this.peers[userId] = pc;
+            this.connectionState = { ...this.connectionState, [userId]: 'connecting' };
 
             const streamToSend = this.outgoingStream || this.localStream;
             streamToSend.getTracks().forEach(track => pc.addTrack(track, streamToSend));
@@ -451,6 +514,20 @@ document.addEventListener('alpine:init', () => {
 
             pc.onicecandidate = (e) => {
                 if (e.candidate) this.sendSignal(userId, 'candidate', JSON.stringify(e.candidate));
+            };
+
+            // Если сеть моргнула (Wi-Fi/мобильный интернет переключился и т.п.) — соединение
+            // переходит в 'disconnected'/'failed'. Пробуем один раз "перезапустить" ICE
+            // (iceRestart), прежде чем считать собеседника отвалившимся окончательно —
+            // это часто чинит "пропал звук на середине звонка" без разрыва всего вызова.
+            pc.oniceconnectionstatechange = () => {
+                this.connectionState = { ...this.connectionState, [userId]: pc.iceConnectionState };
+                if (pc.iceConnectionState === 'failed' && pc.isPolite === false) {
+                    pc.createOffer({ iceRestart: true }).then(async offer => {
+                        await pc.setLocalDescription(offer);
+                        this.sendSignal(userId, 'offer', JSON.stringify(offer));
+                    }).catch(() => {});
+                }
             };
 
             pc.ontrack = (e) => {
@@ -482,8 +559,8 @@ document.addEventListener('alpine:init', () => {
             };
 
             if (isInitiator) {
-                pc.createOffer().then(offer => {
-                    pc.setLocalDescription(offer);
+                pc.createOffer().then(async offer => {
+                    await pc.setLocalDescription(offer);
                     this.sendSignal(userId, 'offer', JSON.stringify(offer));
                 });
             }
@@ -494,6 +571,9 @@ document.addEventListener('alpine:init', () => {
                 this.peers[userId].close();
                 delete this.peers[userId];
             }
+            const cs = { ...this.connectionState };
+            delete cs[userId];
+            this.connectionState = cs;
             if (this.audioEls[userId]) {
                 this.audioEls[userId].remove();
                 delete this.audioEls[userId];
@@ -611,6 +691,7 @@ document.addEventListener('alpine:init', () => {
             this.rafId = null;
 
             for (const uid of Object.keys(this.peers)) this.disconnectFrom(parseInt(uid));
+            this.connectionState = {};
             Object.values(this.analysers).forEach(a => { try { a.ctx.close(); } catch (e) {} });
             this.analysers = {};
             this.speaking = {};
