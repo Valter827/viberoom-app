@@ -44,7 +44,7 @@
                                 <span x-text="p.name"></span>
                             </span>
                             <span x-show="p.muted" class="absolute bottom-2 right-2 bg-red-600 rounded-full w-6 h-6 flex items-center justify-center text-xs">🔇</span>
-                            <template x-if="!p.is_me && ['disconnected', 'failed', 'checking'].includes($store.voice.connectionState[p.user_id])">
+                            <template x-if="!p.is_me && ['disconnected', 'failed'].includes($store.voice.connectionState[p.user_id])">
                                 <div class="absolute inset-0 bg-black/60 flex items-center justify-center">
                                     <span class="text-xs text-amber-300 flex items-center gap-1.5">
                                         <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>

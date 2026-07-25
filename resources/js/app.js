@@ -477,16 +477,15 @@ document.addEventListener('alpine:init', () => {
 
         // Один STUN-сервер — частая причина "звонок не работает у некоторых людей":
         // за более строгим NAT (мобильная сеть, часть офисных/учебных сетей) прямое
-        // P2P-соединение через один STUN не устанавливается вообще, и трафик (в т.ч. звук
-        // с микрофона) просто никуда не уходит — без единой ошибки в консоли. Несколько
-        // STUN для надёжности + публичный TURN-релей (Open Relay Project) как запасной
-        // путь, когда прямое соединение невозможно.
+        // P2P-соединение через один STUN не устанавливается вообще. Но и перебарщивать
+        // нельзя: каждый доп. TURN-сервер в списке — это ещё один relay-allocate запрос,
+        // который браузер ждёт на этапе сбора кандидатов, и это ощутимо тормозит
+        // первичное подключение/переподключение для ВСЕХ, даже для тех, кому TURN
+        // не нужен. Оставляю по одному STUN и TURN на UDP/TCP — этого достаточно.
         iceServerConfig() {
             return [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
                 { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
             ];
         },
@@ -517,16 +516,30 @@ document.addEventListener('alpine:init', () => {
             };
 
             // Если сеть моргнула (Wi-Fi/мобильный интернет переключился и т.п.) — соединение
-            // переходит в 'disconnected'/'failed'. Пробуем один раз "перезапустить" ICE
-            // (iceRestart), прежде чем считать собеседника отвалившимся окончательно —
-            // это часто чинит "пропал звук на середине звонка" без разрыва всего вызова.
+            // переходит в 'disconnected', и часто восстанавливается САМО за пару секунд без
+            // нашего вмешательства. Раньше здесь при каждом срабатывании 'failed' сразу летел
+            // новый offer с iceRestart — но событие могло сработать несколько раз подряд, пока
+            // предыдущий restart ещё не завершился, и офферы начинали "толкаться", из-за чего
+            // соединение вместо восстановления пересобиралось заново раз за разом (отсюда
+            // и долгое восстановление, и обрывы звука). Теперь: (1) на 'disconnected' даём
+            // 3 секунды на самовосстановление, (2) restart запускаем максимум один раз и ждём
+            // его завершения (signalingState === 'stable'), прежде чем пробовать снова.
             pc.oniceconnectionstatechange = () => {
                 this.connectionState = { ...this.connectionState, [userId]: pc.iceConnectionState };
-                if (pc.iceConnectionState === 'failed' && pc.isPolite === false) {
-                    pc.createOffer({ iceRestart: true }).then(async offer => {
-                        await pc.setLocalDescription(offer);
-                        this.sendSignal(userId, 'offer', JSON.stringify(offer));
-                    }).catch(() => {});
+
+                if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+                    clearTimeout(pc._reconnectTimer);
+                    return;
+                }
+
+                if (pc.iceConnectionState === 'disconnected') {
+                    clearTimeout(pc._reconnectTimer);
+                    pc._reconnectTimer = setTimeout(() => {
+                        if (['disconnected', 'failed'].includes(pc.iceConnectionState)) this.restartIce(userId);
+                    }, 3000);
+                } else if (pc.iceConnectionState === 'failed') {
+                    clearTimeout(pc._reconnectTimer);
+                    this.restartIce(userId);
                 }
             };
 
@@ -566,8 +579,31 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        // Инициирует пересогласование с iceRestart — только "невежливая" сторона
+        // (иначе оба одновременно шлют offer и получается коллизия), только когда
+        // предыдущее согласование уже завершилось (signalingState стабилен), и не
+        // повторно, пока предыдущий restart ещё не отработал (pc._restarting).
+        restartIce(userId) {
+            const pc = this.peers[userId];
+            if (!pc || pc.isPolite) return;
+            if (pc.signalingState !== 'stable') return;
+            if (pc._restarting) return;
+
+            pc._restarting = true;
+            pc.createOffer({ iceRestart: true }).then(async offer => {
+                await pc.setLocalDescription(offer);
+                this.sendSignal(userId, 'offer', JSON.stringify(offer));
+            }).catch(() => {}).finally(() => {
+                // Не снимаем блокировку мгновенно — даём время дойти offer/answer
+                // обмену до конца, чтобы 'failed', сохранившийся ещё на пару тиков
+                // после отправки offer, не спровоцировал второй restart поверх первого.
+                setTimeout(() => { pc._restarting = false; }, 4000);
+            });
+        },
+
         disconnectFrom(userId) {
             if (this.peers[userId]) {
+                clearTimeout(this.peers[userId]._reconnectTimer);
                 this.peers[userId].close();
                 delete this.peers[userId];
             }
