@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Channel;
 use App\Models\Server;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -55,5 +56,44 @@ class ChannelController extends Controller
         ]);
 
         return redirect()->route('channels.show', [$server, $channel]);
+    }
+
+    /**
+     * Переименовать канал (только owner/admin). Возвращает JSON — вызывается через fetch
+     * из контекстного меню канала (правый клик), без перезагрузки формы.
+     */
+    public function update(Request $request, Server $server, Channel $channel): JsonResponse
+    {
+        abort_unless($channel->server_id === $server->id, 404);
+
+        $role = $server->members()->where('user_id', Auth::id())->value('role');
+        abort_unless(in_array($role, ['owner', 'admin']), 403, 'Недостаточно прав для переименования канала.');
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:50'],
+        ]);
+
+        $channel->update([
+            'name' => str_replace(' ', '-', strtolower($validated['name'])),
+        ]);
+
+        return response()->json(['status' => 'ok', 'name' => $channel->name]);
+    }
+
+    /**
+     * Удалить канал целиком (только owner/admin). Сообщения канала удаляются
+     * каскадно на уровне БД (channel_id cascadeOnDelete в миграции messages).
+     */
+    public function destroy(Server $server, Channel $channel): RedirectResponse
+    {
+        abort_unless($channel->server_id === $server->id, 404);
+
+        $role = $server->members()->where('user_id', Auth::id())->value('role');
+        abort_unless(in_array($role, ['owner', 'admin']), 403, 'Недостаточно прав для удаления канала.');
+
+        $name = $channel->name;
+        $channel->delete();
+
+        return redirect()->route('servers.show', $server)->with('status', 'Канал «' . $name . '» удалён.');
     }
 }

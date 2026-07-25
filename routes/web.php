@@ -64,6 +64,8 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/servers/{server}/bans/{user}', [ServerMemberController::class, 'unban'])->name('members.unban');
     // --- Каналы (вложены в сервер) ---
     Route::post('/servers/{server}/channels', [ChannelController::class, 'store'])->name('channels.store');
+    Route::patch('/servers/{server}/channels/{channel}', [ChannelController::class, 'update'])->name('channels.update');
+    Route::delete('/servers/{server}/channels/{channel}', [ChannelController::class, 'destroy'])->name('channels.destroy');
     Route::get('/servers/{server}/channels/{channel}', [ChannelController::class, 'show'])->name('channels.show');
     // --- Сообщения (AJAX, JSON-ответ) ---
     Route::post('/channels/{channel}/messages', [MessageController::class, 'store'])->name('messages.store');
