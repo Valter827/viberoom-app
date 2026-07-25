@@ -15,8 +15,8 @@
         @include('servers.partials.voice-channel')
     @elseif ($activeChannel)
         {{-- Шапка канала --}}
-        <div class="h-12 flex items-center px-4 shadow-sm border-b border-black/20 flex-shrink-0 gap-3">
-            <span class="text-gray-400 mr-1.5">#</span>
+        <div class="h-12 flex items-center px-4 shadow-sm border-b border-black/20 flex-shrink-0 gap-3 bg-[#313338]">
+            <span class="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-gray-400 text-sm font-semibold shrink-0">#</span>
             <h2 class="font-semibold flex-1 truncate">{{ $activeChannel->name }}</h2>
 
             <button @click="showPinned = !showPinned; if (showPinned) loadPinned()"
@@ -126,8 +126,17 @@
 
         {{-- Лента сообщений --}}
         <div class="flex-1 overflow-y-auto px-4 py-3" x-ref="messageList">
-            <template x-for="msg in messages" :key="msg.id">
+            <template x-for="(msg, msgIndex) in messages" :key="msg.id">
                 <div>
+                    {{-- Разделитель по дате: показывается перед первым сообщением дня --}}
+                    <template x-if="msgIndex === 0 || formatDate(messages[msgIndex - 1].created_at) !== formatDate(msg.created_at)">
+                        <div class="flex items-center gap-3 py-3 select-none">
+                            <div class="flex-1 h-px bg-white/10"></div>
+                            <span class="text-[11px] font-semibold text-gray-500" x-text="formatDate(msg.created_at)"></span>
+                            <div class="flex-1 h-px bg-white/10"></div>
+                        </div>
+                    </template>
+
                     {{-- Системное сообщение (вышел из сети / стал невидимым и т.п.) --}}
                     <template x-if="msg.is_system">
                         <div class="text-center py-1">
@@ -201,8 +210,8 @@
                         <div class="flex items-baseline gap-2">
                             <span class="font-medium text-sm" x-text="msg.user.name"></span>
                             <span class="text-xs text-gray-500" x-text="formatTime(msg.created_at)"></span>
-                            <span class="text-[10px] text-gray-500" x-show="msg.edited_at">(изменено)</span>
-                            <span class="text-[10px] text-yellow-500" x-show="msg.pinned">📌 закреплено</span>
+                            <span class="text-[10px] text-gray-500 bg-white/5 rounded px-1.5 py-0.5" x-show="msg.edited_at">изменено</span>
+                            <span class="text-[10px] text-yellow-400 bg-yellow-400/10 rounded px-1.5 py-0.5 flex items-center gap-1" x-show="msg.pinned">📌 закреплено</span>
                         </div>
 
                         {{-- Обычный вид сообщения --}}
@@ -277,7 +286,7 @@
 
         {{-- Форма отправки сообщения --}}
         <div class="px-4 pb-6 pt-2 flex-shrink-0">
-            <form @submit.prevent="send" class="relative flex items-center bg-[#383A40] rounded-lg px-3 py-2.5 transition-shadow focus-within:ring-2 focus-within:ring-[#5865F2]/60">
+            <form @submit.prevent="send" class="relative flex items-center bg-[#383A40] rounded-xl px-3 py-2.5 shadow-inner transition-shadow focus-within:ring-2 focus-within:ring-[#5865F2]/60">
                 <label class="icon-action mr-3" title="Прикрепить файл">
                     📎
                     <input type="file" class="hidden" @change="attachment = $event.target.files[0]">
@@ -303,17 +312,27 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn-lift ml-2 px-3 py-1.5 rounded-md text-[#5865F2] hover:text-white hover:bg-[#5865F2] font-medium text-sm">Отправить</button>
+                <button type="submit"
+                        :disabled="!content.trim() && !attachment"
+                        title="Отправить"
+                        class="btn-lift ml-2 w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 enabled:text-[#5865F2] enabled:hover:text-white enabled:hover:bg-[#5865F2] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.6l17.45-8.32a.75.75 0 000-1.36L3.4 2.6a.75.75 0 00-1.06.85l1.9 7.13a.75.75 0 00.58.55l8.3 1.37-8.3 1.37a.75.75 0 00-.58.55l-1.9 7.13a.75.75 0 001.06.85z"/></svg>
+                </button>
             </form>
-            <p class="text-xs text-gray-500 mt-1" x-show="attachment" x-text="attachment ? 'Прикреплено: ' + attachment.name : ''"></p>
+            <p class="text-xs text-gray-500 mt-1 flex items-center gap-1.5" x-show="attachment">
+                📎 <span x-text="attachment ? 'Прикреплено: ' + attachment.name : ''"></span>
+                <button type="button" @click="attachment = null" class="text-gray-500 hover:text-red-400 ml-1">✕</button>
+            </p>
         </div>
 
         @if ($activeChannel->server->tactical_canvas_enabled)
             @include('servers.partials.tactical-canvas')
         @endif
     @else
-        <div class="flex-1 flex items-center justify-center text-gray-500">
-            На этом сервере пока нет каналов.
+        <div class="flex-1 flex flex-col items-center justify-center text-center px-6">
+            <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center text-3xl mb-4">💬</div>
+            <p class="text-gray-300 font-medium">На этом сервере пока нет каналов</p>
+            <p class="text-sm text-gray-500 mt-1 max-w-xs">Создайте текстовый или голосовой канал, чтобы начать общение с участниками.</p>
         </div>
     @endif
 </section>
@@ -816,6 +835,17 @@
 
             formatTime(iso) {
                 return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            },
+
+            // Человекочитаемая дата для разделителей ленты: "Сегодня" / "Вчера" / "25 июля 2026"
+            formatDate(iso) {
+                const d = new Date(iso);
+                const now = new Date();
+                const startOf = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                const diffDays = Math.round((startOf(now) - startOf(d)) / 86400000);
+                if (diffDays === 0) return 'Сегодня';
+                if (diffDays === 1) return 'Вчера';
+                return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
             },
 
             // Экранируем HTML и подсвечиваем @упоминания, не давая внедрить произвольный HTML
