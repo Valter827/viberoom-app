@@ -122,6 +122,32 @@ class VoiceController extends Controller
     }
 
     /**
+     * Временные креды для собственного coturn (RFC 5766 REST API auth).
+     * Логин = "<unix-время-истечения>:<user_id>", пароль = HMAC-SHA1(логин, секрет).
+     * coturn проверяет эту подпись тем же секретом сам, без обращения к нашей БД —
+     * креды живут ограниченное время и работают только на подпись самого пользователя.
+     */
+    public function turnCredentials(): JsonResponse
+    {
+        $host = config('services.turn.host');
+        $secret = config('services.turn.secret');
+
+        abort_unless($host && $secret, 500, 'TURN-сервер не настроен (TURN_HOST/TURN_SECRET в .env).');
+
+        $ttlSeconds = 6 * 3600;
+        $username = (now()->addSeconds($ttlSeconds)->timestamp) . ':' . Auth::id();
+        $credential = base64_encode(hash_hmac('sha1', $username, $secret, true));
+
+        return response()->json([
+            'iceServers' => [
+                ['urls' => "stun:{$host}:3478"],
+                ['urls' => "turn:{$host}:3478?transport=udp", 'username' => $username, 'credential' => $credential],
+                ['urls' => "turn:{$host}:3478?transport=tcp", 'username' => $username, 'credential' => $credential],
+            ],
+        ]);
+    }
+
+    /**
      * Забрать все сигналы, адресованные мне, с момента последнего опроса.
      */
     public function pollSignals(Request $request, Channel $channel): JsonResponse

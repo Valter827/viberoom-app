@@ -99,4 +99,5 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/channels/{channel}/voice/signal', [VoiceController::class, 'sendSignal'])->name('voice.signal');
     Route::get('/channels/{channel}/voice/signals', [VoiceController::class, 'pollSignals'])->name('voice.signals');
     Route::get('/servers/{server}/voice-participants', [VoiceController::class, 'serverParticipants'])->name('voice.server-participants');
+    Route::get('/voice/turn-credentials', [VoiceController::class, 'turnCredentials'])->name('voice.turn-credentials');
 });

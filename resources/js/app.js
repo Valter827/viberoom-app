@@ -147,6 +147,7 @@ document.addEventListener('alpine:init', () => {
         connectionState: {}, // userId -> 'connecting'|'connected'|'disconnected'|'failed' (для индикатора в UI)
         audioEls: {},
         localStream: null,
+        turnConfig: null, // кэш iceServers на сессию звонка, см. loadTurnConfig()
         // Видео: камера и демонстрация экрана используют один и тот же "видео слот"
         // в исходящем соединении — как в Discord, нельзя включить оба одновременно.
         cameraEnabled: false,
@@ -278,6 +279,9 @@ document.addEventListener('alpine:init', () => {
             if (this.joined) await this.leave();
 
             this.connecting = true;
+            // Креды для своего TURN запрашиваем сразу и параллельно с getUserMedia —
+            // к моменту первого connectTo() они уже будут готовы, задержки не добавляем.
+            const turnConfigPromise = this.loadTurnConfig();
             try {
                 this.localStream = await navigator.mediaDevices.getUserMedia({ audio: this.getMicConstraints(), video: false });
                 this.outgoingStream = await this.buildOutgoingStream(this.localStream);
@@ -314,6 +318,7 @@ document.addEventListener('alpine:init', () => {
             this.setupSpeakingDetection(this.localStream, this.myId);
             this.updateParticipants(data.participants);
 
+            await turnConfigPromise;
             for (const p of data.participants) {
                 if (!p.is_me) this.connectTo(p.user_id, true);
             }
@@ -475,19 +480,27 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        // Один STUN-сервер — частая причина "звонок не работает у некоторых людей":
-        // за более строгим NAT (мобильная сеть, часть офисных/учебных сетей) прямое
-        // P2P-соединение через один STUN не устанавливается вообще. Но и перебарщивать
-        // нельзя: каждый доп. TURN-сервер в списке — это ещё один relay-allocate запрос,
-        // который браузер ждёт на этапе сбора кандидатов, и это ощутимо тормозит
-        // первичное подключение/переподключение для ВСЕХ, даже для тех, кому TURN
-        // не нужен. Оставляю по одному STUN и TURN на UDP/TCP — этого достаточно.
+        // Свой coturn вместо публичного бесплатного TURN (openrelay.metered.ca):
+        // у бесплатного общего сервера нет гарантий аптайма и есть общий лимит трафика
+        // на всех его пользователей сразу — под нагрузкой это давало именно то, что
+        // мы наблюдали: "Восстановление связи…" и пропадающий на середине фразы звук.
+        // Креды у своего TURN временные (HMAC, см. VoiceController::turnCredentials) —
+        // это безопаснее захардкоженного логина/пароля, торчащего в JS-бандле.
+        async loadTurnConfig() {
+            try {
+                const res = await fetch('/voice/turn-credentials', { headers: { 'Accept': 'application/json' } });
+                if (res.ok) {
+                    const data = await res.json();
+                    this.turnConfig = data.iceServers;
+                    return;
+                }
+            } catch (e) { /* сервер недоступен — уйдём на STUN-only ниже, без TURN звонок
+                              всё ещё будет работать между людьми без жёсткого NAT */ }
+            this.turnConfig = [{ urls: 'stun:stun.l.google.com:19302' }];
+        },
+
         iceServerConfig() {
-            return [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
-            ];
+            return this.turnConfig || [{ urls: 'stun:stun.l.google.com:19302' }];
         },
 
         connectTo(userId, isInitiator) {

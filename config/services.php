@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    // Свой coturn для голосовых каналов. Секрет должен совпадать со
+    // static-auth-secret в /etc/turnserver.conf на сервере с coturn.
+    'turn' => [
+        'host' => env('TURN_HOST'),
+        'secret' => env('TURN_SECRET'),
+    ],
+
 ];
