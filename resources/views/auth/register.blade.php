@@ -33,7 +33,13 @@
             <span class="absolute text-white/25" style="top:55%; right:5%; font-size:14px;">✦</span>
         </div>
 
-        <div class="relative w-full max-w-md rounded-2xl p-8 shadow-2xl" style="background:#3a3d47;">
+        <div class="relative w-full max-w-md">
+            <a href="{{ url('/') }}" class="flex items-center justify-center gap-2 mb-5 text-white/70 hover:text-white transition-colors text-sm font-medium">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
+                На главную
+            </a>
+
+        <div class="rounded-2xl p-8 shadow-2xl" style="background:#3a3d47;">
 
             <div class="flex justify-center mb-5">
                 <img src="{{ asset('images/logo-emblem.png') }}" alt="VibeRoom" class="w-14 h-14 rounded-full object-contain">
@@ -163,6 +169,7 @@
                     <a href="{{ route('login') }}" class="text-[#8ea1e1] hover:underline">Войти</a>
                 </p>
             </form>
+        </div>
         </div>
     </div>
 </body>

@@ -18,7 +18,13 @@
 <body class="font-sans antialiased">
     <div class="min-h-screen flex items-center justify-center py-10 px-4 bg-[#1e1f22]">
 
-        <div class="w-full max-w-md rounded-2xl p-8 shadow-2xl bg-[#2b2d31]">
+        <div class="w-full max-w-md">
+            <a href="{{ url('/') }}" class="flex items-center justify-center gap-2 mb-6 text-gray-400 hover:text-white transition-colors text-sm font-medium">
+                <img src="{{ asset('images/logo-emblem.png') }}" alt="VibeRoom" class="w-6 h-6 rounded object-contain">
+                VibeRoom
+            </a>
+
+        <div class="rounded-2xl p-8 shadow-2xl bg-[#2b2d31]">
 
             <h1 class="text-white text-2xl font-bold text-center mb-2">С возвращением!</h1>
             <p class="text-gray-400 text-sm text-center mb-6">Мы так рады видеть вас снова!</p>
@@ -81,6 +87,7 @@
                     <a href="{{ route('register') }}" class="text-[#8ea1e1] hover:underline">Зарегистрироваться</a>
                 </p>
             </form>
+        </div>
         </div>
     </div>
 </body>
