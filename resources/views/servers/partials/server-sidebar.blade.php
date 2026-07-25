@@ -16,6 +16,8 @@
         <div class="relative"
              x-data="{
                 menuOpen: false,
+                menuX: 0,
+                menuY: 0,
                 muted: JSON.parse(localStorage.getItem('muted_servers') || '[]').includes({{ $s->id }}),
                 toggleMute() {
                     let list = JSON.parse(localStorage.getItem('muted_servers') || '[]');
@@ -28,7 +30,7 @@
              @click.outside="menuOpen = false"
              @keydown.escape.window="menuOpen = false">
             <a href="{{ route('servers.show', $s) }}"
-               @contextmenu.prevent="menuOpen = true"
+               @contextmenu.prevent="menuOpen = true; menuX = $event.clientX; menuY = $event.clientY"
                class="group relative w-12 h-12 flex items-center justify-center rounded-full overflow-hidden hover:rounded-2xl transition-all duration-200
                       {{ isset($server) && $server->id === $s->id ? 'rounded-2xl ring-2 ring-[#5865F2]' : '' }}">
                 <img src="{{ $s->iconUrl() }}" alt="{{ $s->name }}" class="w-full h-full object-cover">
@@ -39,13 +41,18 @@
                 </span>
             </a>
 
-            {{-- Контекстное меню сервера (правый клик), как в Discord --}}
+            {{-- Контекстное меню сервера (правый клик), как в Discord.
+                 Телепортируется в <body>, иначе overflow-y-auto родительского
+                 сайдбара обрезает меню, если оно выходит за границы узкой колонки. --}}
+            <template x-teleport="body">
             <div x-show="menuOpen" x-cloak
                  x-transition:enter="ease-out duration-100"
                  x-transition:enter-start="opacity-0 scale-95"
                  x-transition:enter-end="opacity-100 scale-100"
                  @click="menuOpen = false"
-                 class="absolute left-16 top-0 z-50 w-64 bg-[#111214] rounded-lg shadow-2xl py-1.5 text-sm origin-top-left">
+                 @click.outside="menuOpen = false"
+                 :style="`top: ${menuY}px; left: ${menuX}px;`"
+                 class="fixed z-50 w-64 bg-[#111214] rounded-lg shadow-2xl py-1.5 text-sm origin-top-left">
                 <p class="px-3 py-1.5 text-xs font-semibold text-gray-500 truncate">{{ $s->name }}</p>
 
                 <button type="button"
@@ -107,6 +114,7 @@
                     </form>
                 @endif
             </div>
+            </template>
         </div>
     @endforeach
 
