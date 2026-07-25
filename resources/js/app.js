@@ -117,16 +117,27 @@ document.addEventListener('alpine:init', () => {
      */
     Alpine.store('contextMenu', {
         openId: null,
+        renamingId: null,
         x: 0,
         y: 0,
         open(id, x, y) {
             this.openId = id;
+            this.renamingId = null;
             this.x = x;
             this.y = y;
         },
         close(id = null) {
             if (id === null || this.openId === id) {
                 this.openId = null;
+            }
+        },
+        startRename(id) {
+            this.openId = null;
+            this.renamingId = id;
+        },
+        stopRename(id = null) {
+            if (id === null || this.renamingId === id) {
+                this.renamingId = null;
             }
         },
     });
