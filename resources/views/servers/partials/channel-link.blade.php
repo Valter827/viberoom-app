@@ -4,9 +4,6 @@
 @endphp
 <div class="relative"
      x-data="{
-        menuOpen: false,
-        menuX: 0,
-        menuY: 0,
         renaming: false,
         newName: @js($channel->name),
         async saveRename() {
@@ -28,11 +25,10 @@
             }
         },
      }"
-     @click.outside="menuOpen = false; renaming = false"
-     @keydown.escape.window="menuOpen = false; renaming = false">
+     @keydown.escape.window="$store.contextMenu.close('channel-{{ $channel->id }}'); renaming = false">
 
     <a href="{{ route('channels.show', [$channel->server_id, $channel]) }}"
-       @contextmenu.prevent="menuOpen = true; menuX = $event.clientX; menuY = $event.clientY"
+       @contextmenu.prevent="$store.contextMenu.open('channel-{{ $channel->id }}', $event.clientX, $event.clientY)"
        class="flex items-center px-2 py-1.5 rounded text-sm text-gray-300 hover:bg-[#3a3c42] hover:text-white transition-colors
               {{ $isActive ? 'bg-[#404249] text-white' : '' }}">
         <span class="mr-1.5 text-gray-500">{{ $channel->isVoice() ? '🔊' : '#' }}</span>
@@ -43,13 +39,13 @@
          Телепортируется в <body> — иначе overflow-y-auto списка каналов
          обрезает меню, если оно выходит за границы узкой колонки. --}}
     <template x-teleport="body">
-    <div x-show="menuOpen && !renaming" x-cloak
+    <div x-show="$store.contextMenu.openId === 'channel-{{ $channel->id }}' && !renaming" x-cloak
          x-transition:enter="ease-out duration-100"
          x-transition:enter-start="opacity-0 scale-95"
          x-transition:enter-end="opacity-100 scale-100"
-         @click="menuOpen = false"
-         @click.outside="menuOpen = false"
-         :style="`top: ${menuY}px; left: ${menuX}px;`"
+         @click="$store.contextMenu.close()"
+         @click.outside="$store.contextMenu.close('channel-{{ $channel->id }}')"
+         :style="`top: ${$store.contextMenu.y}px; left: ${$store.contextMenu.x}px;`"
          class="fixed z-50 w-60 bg-[#111214] rounded-lg shadow-2xl py-1.5 text-sm origin-top-left">
         <p class="px-3 py-1.5 text-xs font-semibold text-gray-500 truncate">
             {{ $channel->isVoice() ? '🔊' : '#' }} {{ $channel->name }}
@@ -63,7 +59,7 @@
 
         @if ($canManageChannel)
             <button type="button"
-                    @click="renaming = true; $nextTick(() => $refs.renameInput.focus())"
+                    @click="$store.contextMenu.close(); renaming = true; $nextTick(() => $refs.renameInput.focus())"
                     class="w-full text-left px-3 py-1.5 text-gray-300 hover:bg-[#5865F2] hover:text-white">
                 ✏️ Изменить название
             </button>
@@ -87,7 +83,7 @@
         <template x-teleport="body">
         <div x-show="renaming" x-cloak
              @click.outside="renaming = false"
-             :style="`top: ${menuY}px; left: ${menuX}px;`"
+             :style="`top: ${$store.contextMenu.y}px; left: ${$store.contextMenu.x}px;`"
              class="fixed z-50 w-64 bg-[#111214] rounded-lg shadow-2xl p-3 text-sm origin-top-left">
             <label class="block text-xs font-semibold uppercase text-gray-400 mb-1">Название канала</label>
             <input x-ref="renameInput" x-model="newName"
