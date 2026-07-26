@@ -84,6 +84,34 @@ const Sounds = {
         this.tone(660, 0.08, 0, 0.12);
         this.tone(990, 0.1, 0.09, 0.12);
     },
+    // --- Голосовая панель: мьют/оглушение/камера/демонстрация экрана ---
+    micMuteOn() {
+        this.tone(320, 0.07, 0, 0.12);
+    },
+    micMuteOff() {
+        this.tone(560, 0.07, 0, 0.12);
+    },
+    deafenOn() {
+        this.tone(260, 0.09, 0, 0.13);
+        this.tone(180, 0.12, 0.06, 0.11);
+    },
+    deafenOff() {
+        this.tone(460, 0.07, 0, 0.1);
+        this.tone(700, 0.09, 0.06, 0.1);
+    },
+    cameraOn() {
+        this.tone(700, 0.08, 0, 0.1);
+    },
+    cameraOff() {
+        this.tone(380, 0.08, 0, 0.1);
+    },
+    screenShareOn() {
+        this.tone(760, 0.07, 0, 0.1);
+        this.tone(1000, 0.09, 0.06, 0.1);
+    },
+    screenShareOff() {
+        this.tone(500, 0.08, 0, 0.09);
+    },
 };
 window.Sounds = Sounds;
 
@@ -379,7 +407,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         async toggleCamera() {
-            if (this.cameraEnabled) { this.stopCamera(); return; }
+            if (this.cameraEnabled) { this.stopCamera(); Sounds.cameraOff(); return; }
             if (this.screenSharing) await this.stopScreenShare();
 
             try {
@@ -391,6 +419,7 @@ document.addEventListener('alpine:init', () => {
             this.cameraEnabled = true;
             this.videoStreams = { ...this.videoStreams, [this.myId]: this.localVideoStream };
             this.addVideoTrackToPeers(this.localVideoStream.getVideoTracks()[0]);
+            Sounds.cameraOn();
         },
 
         stopCamera() {
@@ -404,7 +433,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         async toggleScreenShare() {
-            if (this.screenSharing) { await this.stopScreenShare(); return; }
+            if (this.screenSharing) { await this.stopScreenShare(); Sounds.screenShareOff(); return; }
             if (this.cameraEnabled) this.stopCamera();
 
             const constraints = this.getScreenShareConstraints();
@@ -429,6 +458,7 @@ document.addEventListener('alpine:init', () => {
                     }
                 });
             }
+            Sounds.screenShareOn();
         },
 
         async stopScreenShare() {
@@ -696,15 +726,17 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        toggleMute() {
+        toggleMute(silent = false) {
             this.muted = !this.muted;
             if (this.localStream) this.localStream.getAudioTracks().forEach(t => t.enabled = !this.muted);
+            if (!silent) this.muted ? Sounds.micMuteOn() : Sounds.micMuteOff();
         },
 
         toggleDeafen() {
             this.deafened = !this.deafened;
-            if (this.deafened && !this.muted) this.toggleMute();
+            if (this.deafened && !this.muted) this.toggleMute(true);
             Object.values(this.audioEls).forEach(a => a.muted = this.deafened);
+            this.deafened ? Sounds.deafenOn() : Sounds.deafenOff();
         },
 
         setupSpeakingDetection(stream, key) {
