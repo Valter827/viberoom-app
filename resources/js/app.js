@@ -554,13 +554,19 @@ document.addEventListener('alpine:init', () => {
 
         async heartbeat() {
             if (!this.channelId) return;
-            const res = await fetch(`/channels/${this.channelId}/voice/heartbeat`, {
+            const channelId = this.channelId; // фиксируем — за время await мог смениться/обнулиться
+            const res = await fetch(`/channels/${channelId}/voice/heartbeat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken(), 'Accept': 'application/json' },
                 body: JSON.stringify({ muted: this.muted }),
             });
+            // Пока ждали ответ — вышли из канала или переключились на другой: этот
+            // ответ уже неактуален, обрабатывать его (и тем более коннектиться к
+            // кому-то с обнулённым/чужим channelId) нельзя.
+            if (!this.joined || this.channelId !== channelId) return;
             if (res.ok) {
                 const data = await res.json();
+                if (!this.joined || this.channelId !== channelId) return;
                 this.updateParticipants(data.participants);
                 const stillHere = new Set(data.participants.map(p => p.user_id));
                 for (const uid of Object.keys(this.peers)) {
@@ -747,6 +753,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         async sendSignal(toUserId, type, payload) {
+            if (!this.channelId) return; // защитная проверка — не должно случаться, но лучше молча выйти, чем слать на /channels/null/...
             await fetch(`/channels/${this.channelId}/voice/signal`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken(), 'Accept': 'application/json' },
@@ -756,10 +763,14 @@ document.addEventListener('alpine:init', () => {
 
         async pollSignals() {
             if (!this.channelId) return;
-            const res = await fetch(`/channels/${this.channelId}/voice/signals?after=${this.lastSignalId}`, { headers: { 'Accept': 'application/json' } });
+            const channelId = this.channelId; // фиксируем на случай выхода/смены канала во время await
+            const res = await fetch(`/channels/${channelId}/voice/signals?after=${this.lastSignalId}`, { headers: { 'Accept': 'application/json' } });
+            if (!this.joined || this.channelId !== channelId) return; // уже вышли/сменили канал — ответ неактуален
             if (!res.ok) return;
             const signals = await res.json();
+            if (!this.joined || this.channelId !== channelId) return;
             for (const sig of signals) {
+                if (!this.joined || this.channelId !== channelId) return; // могли выйти прямо посреди обработки пачки сигналов
                 this.lastSignalId = Math.max(this.lastSignalId, sig.id);
                 await this.handleSignal(sig);
             }
