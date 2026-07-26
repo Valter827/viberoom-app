@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\ChannelController;
+use App\Http\Controllers\DirectMessageController;
 use App\Http\Controllers\FriendController;
 use App\Http\Controllers\MentionController;
 use App\Http\Controllers\MessageController;
@@ -43,6 +44,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/friends/{user}/accept', [FriendController::class, 'accept'])->name('friends.accept');
     Route::post('/friends/{user}/decline', [FriendController::class, 'decline'])->name('friends.decline');
     Route::delete('/friends/{user}', [FriendController::class, 'destroy'])->name('friends.destroy');
+    // --- Личные сообщения (DM) ---
+    Route::post('/dm/{user}', [DirectMessageController::class, 'store'])->name('dm.store');
+    Route::get('/dm/{channel}', [DirectMessageController::class, 'show'])->name('dm.show');
     // --- Упоминания (колокольчик уведомлений) ---
     Route::get('/mentions', [MentionController::class, 'index'])->name('mentions.index');
     Route::post('/mentions/read', [MentionController::class, 'markRead'])->name('mentions.read');

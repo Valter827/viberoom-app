@@ -4,10 +4,10 @@
         channelId: {{ $activeChannel?->id ?? 'null' }},
         currentUserId: {{ Auth::id() }},
         initialMessages: {{ $messages->map(fn($m) => $m->toChatArray(Auth::id()))->toJson() }},
-        vibeMatchEnabled: {{ $activeChannel && $activeChannel->server->vibe_match_enabled ? 'true' : 'false' }},
-        partyFinderEnabled: {{ $activeChannel && $activeChannel->server->party_finder_enabled ? 'true' : 'false' }},
-        tacticalCanvasEnabled: {{ $activeChannel && $activeChannel->server->tactical_canvas_enabled ? 'true' : 'false' }},
-        canModerate: {{ $activeChannel && $activeChannel->server->canModerate(Auth::id()) ? 'true' : 'false' }}
+        vibeMatchEnabled: {{ $activeChannel && $activeChannel->server?->vibe_match_enabled ? 'true' : 'false' }},
+        partyFinderEnabled: {{ $activeChannel && $activeChannel->server?->party_finder_enabled ? 'true' : 'false' }},
+        tacticalCanvasEnabled: {{ $activeChannel && $activeChannel->server?->tactical_canvas_enabled ? 'true' : 'false' }},
+        canModerate: {{ $activeChannel && ($activeChannel->server?->canModerate(Auth::id()) ?? false) ? 'true' : 'false' }}
     })"
     x-init="init()">
 
@@ -16,8 +16,14 @@
     @elseif ($activeChannel)
         {{-- Шапка канала --}}
         <div class="h-12 flex items-center px-4 shadow-sm border-b border-black/20 flex-shrink-0 gap-3 bg-[#313338]">
-            <span class="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-gray-400 text-sm font-semibold shrink-0">#</span>
-            <h2 class="font-semibold flex-1 truncate">{{ $activeChannel->name }}</h2>
+            @if ($activeChannel->isDm())
+                @php $companion ??= $activeChannel->otherParticipant(Auth::id()); @endphp
+                <img src="{{ $companion?->avatar_url }}" class="w-6 h-6 rounded-full shrink-0">
+                <h2 class="font-semibold flex-1 truncate">{{ $companion?->name ?? 'Личный чат' }}</h2>
+            @else
+                <span class="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-gray-400 text-sm font-semibold shrink-0">#</span>
+                <h2 class="font-semibold flex-1 truncate">{{ $activeChannel->name }}</h2>
+            @endif
 
             <button @click="showPinned = !showPinned; if (showPinned) loadPinned()"
                     class="icon-action text-sm" title="Закреплённые сообщения">📌</button>
@@ -325,7 +331,7 @@
             </p>
         </div>
 
-        @if ($activeChannel->server->tactical_canvas_enabled)
+        @if ($activeChannel->server?->tactical_canvas_enabled)
             @include('servers.partials.tactical-canvas')
         @endif
     @else

@@ -22,6 +22,7 @@ class FriendController extends Controller
             'friends' => $user->friends(),
             'incoming' => $user->pendingIncomingRequests(),
             'outgoing' => $user->pendingOutgoingRequests(),
+            'dmChannels' => $user->dmChannels()->with('participants')->get(),
         ]);
     }
 

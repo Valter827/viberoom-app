@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Message extends Model
 {
+    // при создании/изменении сообщения "трогаем" канал, чтобы список личных
+    // чатов (dmChannels) можно было сортировать по последней активности
+    protected $touches = ['channel'];
+
     protected $fillable = [
         'channel_id', 'user_id', 'parent_id', 'content', 'is_system', 'type',
         'attachment_path', 'attachment_type', 'edited_at', 'pinned_at',
@@ -82,8 +86,8 @@ class Message extends Model
             ] : null,
             'reactions' => $this->reactionsSummary($viewerId),
             'can_edit' => $this->user_id === $viewerId,
-            'can_delete' => $this->user_id === $viewerId || $this->channel->server->canModerate($viewerId),
-            'can_pin' => $this->channel->server->canModerate($viewerId),
+            'can_delete' => $this->user_id === $viewerId || ($this->channel->server?->canModerate($viewerId) ?? false),
+            'can_pin' => $this->channel->server?->canModerate($viewerId) ?? false,
         ];
     }
 

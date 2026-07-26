@@ -44,7 +44,7 @@ class MessageController extends Controller
      */
     public function store(Request $request, Channel $channel): JsonResponse
     {
-        abort_unless($channel->isText(), 422, 'Сообщения можно отправлять только в текстовые каналы.');
+        abort_unless($channel->isText() || $channel->isDm(), 422, 'Сообщения можно отправлять только в текстовые каналы.');
         $this->authorizeMember($channel);
 
         $validated = $request->validate([
@@ -70,7 +70,9 @@ class MessageController extends Controller
             'attachment_type' => $attachmentType,
         ]);
 
-        $this->createMentions($message, $channel);
+        if (! $channel->isDm()) {
+            $this->createMentions($message, $channel);
+        }
 
         $message->load(['user:id,name,avatar_path', 'reactions.user:id,name', 'parent.user:id,name', 'partyCard.slots.user:id,name,avatar_path']);
 
@@ -93,7 +95,9 @@ class MessageController extends Controller
         ]);
 
         $message->update(['content' => $validated['content'], 'edited_at' => now()]);
-        $this->createMentions($message, $message->channel);
+        if (! $message->channel->isDm()) {
+            $this->createMentions($message, $message->channel);
+        }
         $message->load(['user:id,name,avatar_path', 'reactions.user:id,name', 'parent.user:id,name', 'partyCard.slots.user:id,name,avatar_path']);
 
         return response()->json($message->toChatArray());
@@ -105,7 +109,7 @@ class MessageController extends Controller
     public function destroy(Message $message): JsonResponse
     {
         $channel = $message->channel;
-        $canModerate = $channel->server->canModerate(Auth::id());
+        $canModerate = $channel->server?->canModerate(Auth::id()) ?? false;
 
         abort_unless($message->user_id === Auth::id() || $canModerate, 403, 'Недостаточно прав для удаления.');
 
@@ -150,7 +154,7 @@ class MessageController extends Controller
      */
     public function pin(Message $message): JsonResponse
     {
-        abort_unless($message->channel->server->canModerate(Auth::id()), 403, 'Недостаточно прав.');
+        abort_unless($message->channel->server?->canModerate(Auth::id()) ?? false, 403, 'Недостаточно прав.');
 
         $message->update(['pinned_at' => $message->pinned_at ? null : now()]);
 
@@ -194,6 +198,12 @@ class MessageController extends Controller
 
     private function authorizeMember(Channel $channel): void
     {
+        if ($channel->isDm()) {
+            abort_unless($channel->participants()->where('user_id', Auth::id())->exists(), 403);
+
+            return;
+        }
+
         abort_unless(
             $channel->server->members()->where('user_id', Auth::id())->exists(),
             403

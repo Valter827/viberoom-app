@@ -11,9 +11,28 @@
         </div>
 
         <div class="flex-1 overflow-y-auto px-2 py-3">
-            <div class="px-2 py-2 rounded bg-[#404249] text-sm font-medium flex items-center gap-2">
+            <a href="{{ route('friends.index') }}" class="block px-2 py-2 rounded bg-[#404249] text-sm font-medium flex items-center gap-2 mb-3">
                 <span>🧑‍🤝‍🧑</span> Друзья
-            </div>
+            </a>
+
+            @if ($dmChannels->isNotEmpty())
+                <h3 class="px-2 text-xs font-semibold uppercase text-gray-400 mb-1">Личные сообщения</h3>
+                <div class="space-y-0.5 mb-3">
+                    @foreach ($dmChannels as $dm)
+                        @php $companion = $dm->otherParticipant(Auth::id()); @endphp
+                        @if ($companion)
+                            <a href="{{ route('dm.show', $dm) }}"
+                               class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#35373c] text-sm text-gray-300 hover:text-white transition-colors">
+                                <div class="relative shrink-0">
+                                    <img src="{{ $companion->avatar_url }}" class="w-7 h-7 rounded-full">
+                                    <span class="absolute bottom-0 right-0 w-2 h-2 rounded-full border-2 border-[#2B2D31] {{ $companion->isOnline() ? 'bg-green-500' : 'bg-gray-500' }}"></span>
+                                </div>
+                                <span class="truncate">{{ $companion->name }}</span>
+                            </a>
+                        @endif
+                    @endforeach
+                </div>
+            @endif
 
             @if (Auth::user()->servers->isEmpty())
                 <div class="mt-4 px-2">
@@ -137,6 +156,10 @@
                                 <p class="text-sm font-medium truncate">{{ $friend->name }}</p>
                                 <p class="text-xs text-gray-400 truncate">{{ $friend->isOnline() ? 'В сети' : 'Не в сети' }}</p>
                             </div>
+                            <form method="POST" action="{{ route('dm.store', $friend) }}" onclick="event.stopPropagation()">
+                                @csrf
+                                <button class="btn-lift text-xs bg-[#3a3c42] hover:bg-[#5865F2] px-3 py-1.5 rounded font-medium whitespace-nowrap" title="Написать сообщение">💬 Написать</button>
+                            </form>
                             <form method="POST" action="{{ route('friends.destroy', $friend) }}" onclick="event.stopPropagation()">
                                 @csrf
                                 @method('DELETE')

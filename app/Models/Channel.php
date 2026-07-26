@@ -32,4 +32,28 @@ class Channel extends Model
     {
         return $this->type === 'voice';
     }
+
+    /**
+     * Личный чат (DM) — канал без сервера, с двумя (пока) участниками через dm_participants.
+     */
+    public function isDm(): bool
+    {
+        return $this->type === 'dm';
+    }
+
+    /**
+     * Участники личного чата.
+     */
+    public function participants()
+    {
+        return $this->belongsToMany(User::class, 'dm_participants')->withTimestamps();
+    }
+
+    /**
+     * Собеседник в 1-на-1 личном чате (все, кроме указанного пользователя).
+     */
+    public function otherParticipant(int $userId): ?User
+    {
+        return $this->participants->firstWhere('id', '!=', $userId);
+    }
 }

@@ -116,6 +116,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Личные чаты (DM), в которых участвует пользователь — упорядочены по последней активности.
+     */
+    public function dmChannels()
+    {
+        return $this->belongsToMany(Channel::class, 'dm_participants')
+            ->withTimestamps()
+            ->latest('channels.updated_at');
+    }
+
+    /**
      * Заявки в друзья, отправленные этим пользователем.
      */
     public function outgoingFriendRequests()
