@@ -1,6 +1,25 @@
 {{-- Первая колонка: список серверов пользователя, как в Discord --}}
 <aside class="w-[72px] flex-shrink-0 bg-[#1E1F22] flex flex-col items-center py-3 space-y-2 overflow-y-auto">
 
+    {{-- Личные сообщения — самая верхняя кнопка, ведёт к друзьям/ЛС --}}
+    <a href="{{ route('friends.index') }}"
+       class="group relative w-12 h-12 flex items-center justify-center rounded-full overflow-hidden transition-all duration-200
+              {{ request()->routeIs('friends.*') || request()->routeIs('dm.*')
+                    ? 'rounded-2xl bg-[#5865F2] text-white'
+                    : 'bg-[#313338] text-gray-300 hover:bg-[#5865F2] hover:text-white hover:rounded-2xl' }}"
+       title="Личные сообщения">
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.02 2 11c0 2.62 1.24 4.97 3.22 6.62-.06.83-.35 2.02-1.06 3.15a.5.5 0 00.53.75 8.9 8.9 0 004.2-1.62c.98.28 2.03.43 3.11.43 5.52 0 10-4.02 10-9S17.52 2 12 2z"/>
+        </svg>
+
+        {{-- Тултип с названием, как у серверов --}}
+        <span class="pointer-events-none absolute left-16 whitespace-nowrap bg-black/90 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-50">
+            Личные сообщения
+        </span>
+    </a>
+
+    <div class="w-8 border-t border-[#3a3c42]"></div>
+
     {{-- "Домашняя" кнопка / личные сообщения (заглушка для базовой версии) --}}
     <a href="{{ route('servers.create') }}"
        class="group relative w-12 h-12 flex items-center justify-center rounded-full bg-[#313338] hover:bg-[#5865F2] hover:rounded-2xl transition-all duration-200"
