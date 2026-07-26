@@ -8,6 +8,8 @@ use App\Models\VoiceSignal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 /**
  * Голосовые каналы без постоянного WebSocket-сервера: сигналинг WebRTC
@@ -122,30 +124,126 @@ class VoiceController extends Controller
     }
 
     /**
-     * Временные креды для собственного coturn (RFC 5766 REST API auth).
-     * Логин = "<unix-время-истечения>:<user_id>", пароль = HMAC-SHA1(логин, секрет).
-     * coturn проверяет эту подпись тем же секретом сам, без обращения к нашей БД —
-     * креды живут ограниченное время и работают только на подпись самого пользователя.
+     * Отдаёт iceServers для WebRTC-звонка. Порядок приоритета:
+     *   1) Metered.ca — бесплатно 500 МБ/мес БЕЗ привязки карты
+     *      (см. METERED_TURN_APP_NAME/METERED_TURN_API_KEY в .env).
+     *   2) Cloudflare Realtime TURN — 1000 ГБ/мес бесплатно, но требует привязать карту
+     *      (см. CLOUDFLARE_TURN_KEY_ID/CLOUDFLARE_TURN_TOKEN в .env).
+     *   3) Собственный coturn, если настроен (TURN_HOST/TURN_SECRET).
+     *   4) STUN-only — звонок будет работать только между собеседниками без жёсткого NAT.
      */
     public function turnCredentials(): JsonResponse
     {
+        if ($iceServers = $this->meteredTurnCredentials()) {
+            return response()->json(['iceServers' => $iceServers]);
+        }
+
+        if ($iceServers = $this->cloudflareTurnCredentials()) {
+            return response()->json(['iceServers' => $iceServers]);
+        }
+
         $host = config('services.turn.host');
         $secret = config('services.turn.secret');
 
-        abort_unless($host && $secret, 500, 'TURN-сервер не настроен (TURN_HOST/TURN_SECRET в .env).');
+        if ($host && $secret) {
+            $ttlSeconds = 6 * 3600;
+            $username = (now()->addSeconds($ttlSeconds)->timestamp) . ':' . Auth::id();
+            $credential = base64_encode(hash_hmac('sha1', $username, $secret, true));
 
-        $ttlSeconds = 6 * 3600;
-        $username = (now()->addSeconds($ttlSeconds)->timestamp) . ':' . Auth::id();
-        $credential = base64_encode(hash_hmac('sha1', $username, $secret, true));
+            return response()->json([
+                'iceServers' => [
+                    ['urls' => "stun:{$host}:3478"],
+                    ['urls' => "turn:{$host}:3478?transport=udp", 'username' => $username, 'credential' => $credential],
+                    ['urls' => "turn:{$host}:3478?transport=tcp", 'username' => $username, 'credential' => $credential],
+                ],
+            ]);
+        }
 
         return response()->json([
-            'iceServers' => [
-                ['urls' => "stun:{$host}:3478"],
-                ['urls' => "turn:{$host}:3478?transport=udp", 'username' => $username, 'credential' => $credential],
-                ['urls' => "turn:{$host}:3478?transport=tcp", 'username' => $username, 'credential' => $credential],
-            ],
+            'iceServers' => [['urls' => 'stun:stun.cloudflare.com:3478']],
         ]);
     }
+
+    /**
+     * Metered.ca отдаёт готовый массив iceServers по простому GET-запросу с apiKey —
+     * никакого TTL/подписи не нужно, поэтому кэшировать особо нечего, но всё равно
+     * кэшируем на минуту, чтобы не долбить их API при частых /join подряд.
+     */
+    private function meteredTurnCredentials(): ?array
+    {
+        $appName = config('services.metered_turn.app_name');
+        $apiKey = config('services.metered_turn.api_key');
+        if (! $appName || ! $apiKey) {
+            return null;
+        }
+
+        if ($cached = Cache::get('metered_turn_ice_servers')) {
+            return $cached;
+        }
+
+        try {
+            $response = Http::timeout(5)
+                ->get("https://{$appName}.metered.live/api/v1/turn/credentials", [
+                    'apiKey' => $apiKey,
+                ]);
+        } catch (\Throwable $e) {
+            return null; // Metered недоступен — упадём на следующий фолбэк
+        }
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        $iceServers = $response->json();
+        if (! is_array($iceServers) || ! count($iceServers)) {
+            return null;
+        }
+
+        Cache::put('metered_turn_ice_servers', $iceServers, 60);
+        return $iceServers;
+    }
+
+    /**
+     * Кредов от Cloudflare хватает на всех пользователей сразу (они не привязаны
+     * к конкретному человеку, только к TTL) — поэтому кэшируем на 5 минут меньше
+     * TTL и не дёргаем их API на каждый /join, а только раз в ~6 часов.
+     */
+    private function cloudflareTurnCredentials(): ?array
+    {
+        $keyId = config('services.cloudflare_turn.key_id');
+        $token = config('services.cloudflare_turn.token');
+        if (! $keyId || ! $token) {
+            return null;
+        }
+
+        if ($cached = Cache::get('cloudflare_turn_ice_servers')) {
+            return $cached;
+        }
+
+        try {
+            $response = Http::withToken($token)
+                ->timeout(5)
+                ->acceptJson()
+                ->post("https://rtc.live.cloudflare.com/v1/turn/keys/{$keyId}/credentials/generate-ice-servers", [
+                    'ttl' => 21600, // 6 часов
+                ]);
+        } catch (\Throwable $e) {
+            return null; // Cloudflare недоступен — упадём на фолбэк в turnCredentials()
+        }
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        $iceServers = $response->json('iceServers');
+        if (! $iceServers) {
+            return null;
+        }
+
+        Cache::put('cloudflare_turn_ice_servers', $iceServers, 21300); // на 5 мин меньше TTL
+        return $iceServers;
+    }
+
 
     /**
      * Забрать все сигналы, адресованные мне, с момента последнего опроса.

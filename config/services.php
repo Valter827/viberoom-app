@@ -35,11 +35,27 @@ return [
         ],
     ],
 
-    // Свой coturn для голосовых каналов. Секрет должен совпадать со
-    // static-auth-secret в /etc/turnserver.conf на сервере с coturn.
+    // Свой coturn для голосовых каналов (фолбэк, если Cloudflare TURN ниже не настроен).
+    // Секрет должен совпадать со static-auth-secret в /etc/turnserver.conf на сервере с coturn.
     'turn' => [
         'host' => env('TURN_HOST'),
         'secret' => env('TURN_SECRET'),
+    ],
+
+    // Metered.ca — основной вариант: 500 МБ TURN-трафика в месяц бесплатно,
+    // БЕЗ привязки карты. Регистрация: dashboard.metered.ca/signup ->
+    // раздел TURN Servers -> там же appName (поддомен *.metered.live) и API Key.
+    'metered_turn' => [
+        'app_name' => env('METERED_TURN_APP_NAME'),
+        'api_key' => env('METERED_TURN_API_KEY'),
+    ],
+
+    // Cloudflare Realtime TURN — опционально, 1000 ГБ/мес бесплатно, но требует
+    // привязать карту (не списывает, пока не выйдешь за бесплатный лимит).
+    // Взять TURN Token ID и API Token: dash.cloudflare.com -> Calls -> Create TURN App.
+    'cloudflare_turn' => [
+        'key_id' => env('CLOUDFLARE_TURN_KEY_ID'),
+        'token' => env('CLOUDFLARE_TURN_TOKEN'),
     ],
 
 ];
