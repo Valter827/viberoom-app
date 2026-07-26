@@ -361,7 +361,10 @@ document.addEventListener('alpine:init', () => {
             }, 1000);
 
             this.heartbeatTimer = setInterval(() => this.heartbeat(), 5000);
-            this.signalTimer = setInterval(() => this.pollSignals(), 1500);
+            // 1.5с было заметной задержкой при установке звонка и восстановлении связи
+            // (ICE-кандидаты и offer/answer идут через БД, а не напрямую) — 500ms ощутимо
+            // ускоряет и то, и другое, нагрузка на БД при этом копеечная (лёгкий SELECT).
+            this.signalTimer = setInterval(() => this.pollSignals(), 500);
 
             // если в профиле включено "всегда включать камеру при входе" — включаем сразу
             if (!silent && localStorage.getItem('video_default_enabled') === '1') {
@@ -379,9 +382,32 @@ document.addEventListener('alpine:init', () => {
             if (!pc || pc.signalingState !== 'stable') return; // согласование уже идёт — дождёмся его завершения
             try {
                 const offer = await pc.createOffer();
+                offer.sdp = this.tuneAudioSdp(offer.sdp);
                 await pc.setLocalDescription(offer);
                 this.sendSignal(userId, 'offer', JSON.stringify(offer));
             } catch (e) { /* ignore glare — редкий edge case для P2P-демо */ }
+        },
+
+        // Поднимает битрейт Opus с дефолтных ~32kbps до 64kbps (заметно чище звук на
+        // "живом" голосе), включает inband FEC — восстановление одиночного потерянного
+        // пакета без заикания в звуке, критично на мобильных сетях — и DTX, который не
+        // тратит битрейт на паузы в речи (экономия трафика без потери качества, бесплатно).
+        tuneAudioSdp(sdp) {
+            const rtpmap = sdp.match(/a=rtpmap:(\d+) opus\/48000/i);
+            if (!rtpmap) return sdp;
+            const pt = rtpmap[1];
+            const desired = { stereo: '0', useinbandfec: '1', usedtx: '1', maxaveragebitrate: '64000' };
+            const fmtpRegex = new RegExp(`a=fmtp:${pt} ([^\r\n]*)`);
+            const fmtpMatch = sdp.match(fmtpRegex);
+            if (fmtpMatch) {
+                const params = Object.fromEntries(fmtpMatch[1].split(';').filter(Boolean).map(kv => kv.split('=')));
+                Object.assign(params, desired);
+                const newLine = `a=fmtp:${pt} ` + Object.entries(params).map(([k, v]) => `${k}=${v}`).join(';');
+                return sdp.replace(fmtpRegex, newLine);
+            }
+            const rtpmapLine = new RegExp(`(a=rtpmap:${pt} opus/48000/2\r\n)`);
+            const newFmtp = `a=fmtp:${pt} ` + Object.entries(desired).map(([k, v]) => `${k}=${v}`).join(';') + '\r\n';
+            return sdp.replace(rtpmapLine, `$1${newFmtp}`);
         },
 
         addVideoTrackToPeers(track) {
@@ -393,7 +419,40 @@ document.addEventListener('alpine:init', () => {
                     pc.addTrack(track, this.localVideoStream || this.localScreenStream);
                     this.renegotiate(userId);
                 }
+                this.tuneVideoSender(pc, this.screenSharing);
             }
+        },
+
+        // Голос не должен "тормозить" из-за камеры/демонстрации экрана на том же P2P-канале:
+        // явно поднимаем битрейт и приоритет аудио-дорожки (по умолчанию браузер шлёт голос
+        // всего ~32 kbps — этого достаточно "лишь бы работало", но на слух это как через
+        // рацию). Часть полей (priority/networkPriority) — Chrome/Edge-специфичные хинты
+        // планировщика полосы; там, где их нет, просто ничего не произойдёт.
+        async tuneAudioSender(pc) {
+            try {
+                const sender = pc.getSenders().find(s => s.track && s.track.kind === 'audio');
+                if (!sender) return;
+                const params = sender.getParameters();
+                if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+                params.encodings[0].maxBitrate = 64000;
+                params.encodings[0].priority = 'high';
+                params.encodings[0].networkPriority = 'high';
+                await sender.setParameters(params);
+            } catch (e) { /* браузер не поддерживает эти поля setParameters — просто пропускаем */ }
+        },
+
+        // Ограничиваем битрейт видео сверху, чтобы на слабых аплинках (мобильный интернет,
+        // домашний Wi-Fi с малой отдачей) картинка не съедала весь канал и не душила голос.
+        async tuneVideoSender(pc, isScreenShare) {
+            try {
+                const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+                if (!sender) return;
+                const params = sender.getParameters();
+                if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+                params.encodings[0].maxBitrate = isScreenShare ? 2_500_000 : 1_000_000;
+                params.encodings[0].priority = 'low';
+                await sender.setParameters(params);
+            } catch (e) { /* ignore */ }
         },
 
         removeVideoTrackFromPeers() {
@@ -536,7 +595,17 @@ document.addEventListener('alpine:init', () => {
         connectTo(userId, isInitiator) {
             if (this.peers[userId]) return;
 
-            const pc = new RTCPeerConnection({ iceServers: this.iceServerConfig() });
+            const pc = new RTCPeerConnection({
+                iceServers: this.iceServerConfig(),
+                // max-bundle/require — одно ICE-соединение на все дорожки (аудио+видео) вместо
+                // отдельного на каждую: меньше кандидатов нужно перебрать, соединение
+                // устанавливается быстрее, особенно на "тяжёлых" NAT.
+                bundlePolicy: 'max-bundle',
+                rtcpMuxPolicy: 'require',
+                // Пул заранее собранных ICE-кандидатов — часть работы по обходу NAT стартует
+                // ещё до создания offer, а не после него, это тоже сокращает время коннекта.
+                iceCandidatePoolSize: 4,
+            });
             // "Вежливая" сторона при коллизии офферов (оба одновременно пере-согласовывают
             // соединение, например включили камеру в один момент) уступает и откатывает
             // свой оффер — иначе один из offer/answer обменов падает с "wrong state".
@@ -546,12 +615,14 @@ document.addEventListener('alpine:init', () => {
 
             const streamToSend = this.outgoingStream || this.localStream;
             streamToSend.getTracks().forEach(track => pc.addTrack(track, streamToSend));
+            this.tuneAudioSender(pc);
 
             // если камера или демонстрация экрана уже включены — сразу отдаём видео-дорожку
             // новому участнику вместе с первым offer, без отдельной renegotiation
             const myVideoStream = this.localVideoStream || this.localScreenStream;
             if (myVideoStream) {
                 myVideoStream.getVideoTracks().forEach(track => pc.addTrack(track, myVideoStream));
+                this.tuneVideoSender(pc, this.screenSharing);
             }
 
             pc.onicecandidate = (e) => {
@@ -616,6 +687,7 @@ document.addEventListener('alpine:init', () => {
 
             if (isInitiator) {
                 pc.createOffer().then(async offer => {
+                    offer.sdp = this.tuneAudioSdp(offer.sdp);
                     await pc.setLocalDescription(offer);
                     this.sendSignal(userId, 'offer', JSON.stringify(offer));
                 });
@@ -634,6 +706,7 @@ document.addEventListener('alpine:init', () => {
 
             pc._restarting = true;
             pc.createOffer({ iceRestart: true }).then(async offer => {
+                offer.sdp = this.tuneAudioSdp(offer.sdp);
                 await pc.setLocalDescription(offer);
                 this.sendSignal(userId, 'offer', JSON.stringify(offer));
             }).catch(() => {}).finally(() => {
@@ -712,6 +785,7 @@ document.addEventListener('alpine:init', () => {
                 }
                 await pc.setRemoteDescription(new RTCSessionDescription(payload));
                 const answer = await pc.createAnswer();
+                answer.sdp = this.tuneAudioSdp(answer.sdp);
                 await pc.setLocalDescription(answer);
                 this.sendSignal(fromId, 'answer', JSON.stringify(answer));
             } else if (sig.type === 'answer') {
