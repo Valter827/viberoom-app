@@ -23,12 +23,13 @@
         </template>
 
         <template x-if="$store.voice.joined && $store.voice.channelId === {{ $activeChannel->id }}">
-            <div class="w-full h-full flex flex-col">
+            <div class="w-full h-full flex flex-col" x-data="{ expandedUser: null }" @keydown.escape.window="expandedUser = null">
                 {{-- Плитки участников — крупные, как в видеозвонке --}}
                 <div class="flex-1 grid gap-3 p-2 place-content-center"
                      :style="`grid-template-columns: repeat(${Math.min($store.voice.participants.length, 3)}, minmax(180px, 320px))`">
                     <template x-for="p in $store.voice.participants" :key="p.user_id">
-                        <div class="vr-card relative bg-[#1a1b1e] rounded-xl aspect-video flex items-center justify-center transition-shadow duration-100 overflow-hidden"
+                        <div @click="expandedUser = p.user_id"
+                             class="vr-card relative bg-[#1a1b1e] rounded-xl aspect-video flex items-center justify-center transition-shadow duration-100 overflow-hidden cursor-pointer hover:ring-2 hover:ring-white/20"
                              :class="$store.voice.speaking[p.user_id] ? 'ring-2 ring-emerald-500' : ''">
                             <template x-if="$store.voice.videoStreams[p.user_id]">
                                 <video autoplay playsinline muted
@@ -44,6 +45,10 @@
                                 <span x-text="p.name"></span>
                             </span>
                             <span x-show="p.muted" class="absolute bottom-2 right-2 bg-red-600 rounded-full w-6 h-6 flex items-center justify-center text-xs">🔇</span>
+                            <button x-show="$store.voice.videoStreams[p.user_id]"
+                                    @click.stop="expandedUser = p.user_id"
+                                    class="absolute top-2 right-2 bg-black/50 hover:bg-black/70 rounded w-7 h-7 flex items-center justify-center text-xs"
+                                    title="Развернуть">⛶</button>
                             <template x-if="!p.is_me && ['disconnected', 'failed'].includes($store.voice.connectionState[p.user_id])">
                                 <div class="absolute inset-0 bg-black/60 flex items-center justify-center">
                                     <span class="text-xs text-amber-300 flex items-center gap-1.5">
@@ -55,6 +60,45 @@
                         </div>
                     </template>
                 </div>
+
+                {{-- Развёрнутый просмотр плитки/демонстрации экрана поверх всего интерфейса --}}
+                <template x-teleport="body">
+                    <div x-show="expandedUser !== null" x-cloak
+                         x-transition:enter="ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                         x-transition:leave="ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                         @click.self="expandedUser = null"
+                         class="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-6">
+                        <template x-if="expandedUser !== null">
+                            <div class="relative w-full h-full flex items-center justify-center">
+                                <template x-for="p in $store.voice.participants.filter(x => x.user_id === expandedUser)" :key="p.user_id">
+                                    <div class="relative max-w-full max-h-full">
+                                        <template x-if="$store.voice.videoStreams[p.user_id]">
+                                            <video autoplay playsinline muted
+                                                   class="max-w-full max-h-[85vh] rounded-lg"
+                                                   :class="$store.voice.screenSharingUsers[p.user_id] ? 'object-contain' : 'object-cover'"
+                                                   x-effect="$el.srcObject = $store.voice.videoStreams[p.user_id] || null"
+                                                   x-ref="expandedVideo"></video>
+                                        </template>
+                                        <template x-if="!$store.voice.videoStreams[p.user_id]">
+                                            <img :src="p.avatar_url" class="w-40 h-40 rounded-full mx-auto">
+                                        </template>
+                                        <span class="absolute bottom-3 left-3 text-sm bg-black/60 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                                            <span x-show="$store.voice.screenSharingUsers[p.user_id]">🖥️</span>
+                                            <span x-text="p.name"></span>
+                                        </span>
+                                    </div>
+                                </template>
+                                <button @click="expandedUser = null"
+                                        class="absolute top-4 right-4 bg-black/50 hover:bg-black/70 rounded-full w-10 h-10 flex items-center justify-center text-lg"
+                                        title="Закрыть">✕</button>
+                                <button x-show="$refs.expandedVideo"
+                                        @click="$refs.expandedVideo?.requestFullscreen?.()"
+                                        class="absolute top-4 right-16 bg-black/50 hover:bg-black/70 rounded-full w-10 h-10 flex items-center justify-center text-lg"
+                                        title="На весь экран">⛶</button>
+                            </div>
+                        </template>
+                    </div>
+                </template>
 
                 {{-- Панель управления снизу, как в référence --}}
                 <div class="flex justify-center gap-3 py-4">

@@ -60,6 +60,14 @@
               {{ $isActive ? 'bg-[#404249] text-white' : '' }}">
         <span class="mr-1.5 text-gray-500">{{ $channel->isVoice() ? '🔊' : '#' }}</span>
         <span class="truncate">{{ $channel->name }}</span>
+        @if ($channel->isVoice())
+            <template x-if="$store.voice.joined && $store.voice.channelId === {{ $channel->id }}">
+                <span class="ml-auto pl-2 text-[11px] text-emerald-400 flex items-center gap-1 flex-shrink-0">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span x-text="$store.voice.formattedDuration"></span>
+                </span>
+            </template>
+        @endif
     </a>
 
     {{-- Контекстное меню канала (правый клик).
