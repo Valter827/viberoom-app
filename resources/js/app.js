@@ -752,6 +752,18 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        // Полный снос и пересборка соединения с нуля — когда SDP-пересогласование
+        // зашло в состояние, которое браузер уже не может аккуратно распутать
+        // (см. catch в handleSignal). Небольшая случайная задержка перед
+        // пересозданием — чтобы обе стороны не попытались стать "инициатором"
+        // ровно в один и тот же момент и не столкнулись офферами повторно.
+        hardReconnect(userId) {
+            this.disconnectFrom(userId);
+            setTimeout(() => {
+                if (this.joined && !this.peers[userId]) this.connectTo(userId, true);
+            }, 200 + Math.random() * 400);
+        },
+
         async sendSignal(toUserId, type, payload) {
             if (!this.channelId) return; // защитная проверка — не должно случаться, но лучше молча выйти, чем слать на /channels/null/...
             await fetch(`/channels/${this.channelId}/voice/signal`, {
@@ -785,26 +797,40 @@ document.addEventListener('alpine:init', () => {
             const payload = JSON.parse(sig.payload);
 
             if (sig.type === 'offer') {
-                // Коллизия: у нас у самих уже есть свой неподтверждённый оффер (например,
-                // мы сами только что включили камеру одновременно с собеседником).
-                const collision = pc.signalingState !== 'stable';
-                if (collision && !pc.isPolite) {
-                    return; // "невежливая" сторона игнорирует чужой оффер, дожидается своего answer
-                }
-                if (collision) {
-                    await pc.setLocalDescription({ type: 'rollback' }); // "вежливая" сторона уступает
-                }
-                await pc.setRemoteDescription(new RTCSessionDescription(payload));
-                const answer = await pc.createAnswer();
-                answer.sdp = this.tuneAudioSdp(answer.sdp);
-                await pc.setLocalDescription(answer);
-                this.sendSignal(fromId, 'answer', JSON.stringify(answer));
-            } else if (sig.type === 'answer') {
-                // Дублирующийся/устаревший answer (например, из-за повторного опроса
-                // сигналов) вне состояния "есть свой неподтверждённый оффер" — просто игнорируем,
-                // иначе setRemoteDescription падает с "Called in wrong state: stable".
-                if (pc.signalingState === 'have-local-offer') {
+                try {
+                    // Коллизия: у нас у самих уже есть свой неподтверждённый оффер (например,
+                    // мы сами только что включили камеру одновременно с собеседником).
+                    const collision = pc.signalingState !== 'stable';
+                    if (collision && !pc.isPolite) {
+                        return; // "невежливая" сторона игнорирует чужой оффер, дожидается своего answer
+                    }
+                    if (collision) {
+                        await pc.setLocalDescription({ type: 'rollback' }); // "вежливая" сторона уступает
+                    }
                     await pc.setRemoteDescription(new RTCSessionDescription(payload));
+                    const answer = await pc.createAnswer();
+                    answer.sdp = this.tuneAudioSdp(answer.sdp);
+                    await pc.setLocalDescription(answer);
+                    this.sendSignal(fromId, 'answer', JSON.stringify(answer));
+                } catch (e) {
+                    // Несколько offer/answer-циклов наложились друг на друга (например,
+                    // пересогласование из-за включения камеры + ICE-restart почти
+                    // одновременно) — SDP оказался в состоянии, из которого браузер
+                    // не может аккуратно продолжить (m-lines/state рассинхронизировались).
+                    // Чинить такое соединение бессмысленно — проще снести и поднять
+                    // заново с нуля, это надёжнее любой попытки "починить" SDP на лету.
+                    this.hardReconnect(fromId);
+                }
+            } else if (sig.type === 'answer') {
+                try {
+                    // Дублирующийся/устаревший answer (например, из-за повторного опроса
+                    // сигналов) вне состояния "есть свой неподтверждённый оффер" — просто игнорируем,
+                    // иначе setRemoteDescription падает с "Called in wrong state: stable".
+                    if (pc.signalingState === 'have-local-offer') {
+                        await pc.setRemoteDescription(new RTCSessionDescription(payload));
+                    }
+                } catch (e) {
+                    this.hardReconnect(fromId);
                 }
             } else if (sig.type === 'candidate') {
                 try { await pc.addIceCandidate(new RTCIceCandidate(payload)); } catch (e) { /* ignore */ }
