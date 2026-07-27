@@ -595,7 +595,24 @@ document.addEventListener('alpine:init', () => {
         },
 
         iceServerConfig() {
-            return this.turnConfig || [{ urls: 'stun:stun.l.google.com:19302' }];
+            const servers = this.turnConfig || [{ urls: 'stun:stun.l.google.com:19302' }];
+            // Metered отдаёт сразу 5 адресов (stun + turn-udp:80 + turn-tcp:80 + turn-udp:443
+            // + turns-tcp:443) — это учетверяет число ICE-кандидатов и пар для перебора,
+            // из-за чего ICE-агент может не успеть всё перебрать и застрять на "waiting"
+            // (см. диагностику из webrtc-internals). Оставляем по одному самому нужному:
+            // 1 stun + 1 turn(udp) + 1 turn/turns(tcp) — этого достаточно для обхода
+            // почти любого NAT/файрвола, а "шума" для перебора в разы меньше.
+            let stun = null, turnUdp = null, turnTcp = null;
+            for (const s of servers) {
+                const urls = Array.isArray(s.urls) ? s.urls : [s.urls];
+                for (const url of urls) {
+                    if (url.startsWith('stun:') && !stun) stun = s;
+                    else if (/^turns?:/.test(url) && /transport=tcp/.test(url) && !turnTcp) turnTcp = s;
+                    else if (/^turn:/.test(url) && !turnUdp) turnUdp = s;
+                }
+            }
+            const trimmed = [stun, turnUdp, turnTcp].filter(Boolean);
+            return trimmed.length ? trimmed : servers;
         },
 
         connectTo(userId, isInitiator) {
@@ -608,9 +625,11 @@ document.addEventListener('alpine:init', () => {
                 // устанавливается быстрее, особенно на "тяжёлых" NAT.
                 bundlePolicy: 'max-bundle',
                 rtcpMuxPolicy: 'require',
-                // Пул заранее собранных ICE-кандидатов — часть работы по обходу NAT стартует
-                // ещё до создания offer, а не после него, это тоже сокращает время коннекта.
-                iceCandidatePoolSize: 4,
+                // iceCandidatePoolSize намеренно НЕ выставляем: в связке с несколькими
+                // TURN-адресами от Metered (stun + 4 turn-варианта) он давал взрывной
+                // рост числа пар кандидатов (сотни pair'ов в состоянии "waiting", которые
+                // ICE-агент не успевал перебрать) — соединение застревало на
+                // new => disconnected, ни разу не дойдя даже до "checking".
             });
             // "Вежливая" сторона при коллизии офферов (оба одновременно пере-согласовывают
             // соединение, например включили камеру в один момент) уступает и откатывает
