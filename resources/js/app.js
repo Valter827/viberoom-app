@@ -348,7 +348,11 @@ document.addEventListener('alpine:init', () => {
 
             await turnConfigPromise;
             for (const p of data.participants) {
-                if (!p.is_me) this.connectTo(p.user_id, true);
+                // Инициатор определяется детерминированно (у кого ID меньше), а не "все
+                // считают себя инициатором" — иначе при коллизии офферов обе стороны
+                // одновременно "невежливые" и не уступают друг другу, согласование
+                // зависает и уходит в бесконечный цикл пересозданий соединения.
+                if (!p.is_me) this.connectTo(p.user_id, this.myId < p.user_id);
             }
 
             // таймер длительности звонка — joined_at приходит с сервера, чтобы
@@ -547,7 +551,7 @@ document.addEventListener('alpine:init', () => {
             this.participants = list;
             for (const p of list) {
                 if (!p.is_me && !before.has(p.user_id) && !this.peers[p.user_id]) {
-                    this.connectTo(p.user_id, true);
+                    this.connectTo(p.user_id, this.myId < p.user_id);
                 }
             }
         },
@@ -779,7 +783,7 @@ document.addEventListener('alpine:init', () => {
         hardReconnect(userId) {
             this.disconnectFrom(userId);
             setTimeout(() => {
-                if (this.joined && !this.peers[userId]) this.connectTo(userId, true);
+                if (this.joined && !this.peers[userId]) this.connectTo(userId, this.myId < userId);
             }, 200 + Math.random() * 400);
         },
 
