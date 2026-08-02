@@ -69,9 +69,16 @@ class VoiceController extends Controller
         // тот же прямой апдейт общего статуса "в сети" на каждый heartbeat
         Auth::user()->forceFill(['last_seen_at' => now()])->saveQuietly();
 
-        // считаем "вышедшими" тех, от кого не было heartbeat более 15 секунд
+        // считаем "вышедшими" тех, от кого не было heartbeat более 45 секунд.
+        // Раньше было 15 сек при heartbeat каждые 5 сек — это не оставляло запаса
+        // на троттлинг таймеров в неактивных/свёрнутых вкладках браузера (Chrome
+        // замедляет setInterval в фоновых вкладках), из-за чего участника
+        // "выкидывало" уже через пару пропущенных heartbeat, соединение рвалось,
+        // и на другой стороне запускалась полная пересборка RTCPeerConnection —
+        // именно это и приводило к десяткам ICE-рестартов подряд и к тому, что
+        // звонок не мог толком установиться (стоял всё время в "checking").
         VoiceParticipant::where('channel_id', $channel->id)
-            ->where('last_seen_at', '<', now()->subSeconds(15))
+            ->where('last_seen_at', '<', now()->subSeconds(45))
             ->delete();
 
         return response()->json(['participants' => $this->participantsList($channel)]);
@@ -272,10 +279,11 @@ class VoiceController extends Controller
     {
         abort_unless($server->members()->where('user_id', Auth::id())->exists(), 403);
 
-        // подчищаем "зависших" (без heartbeat > 15 сек) по всем голосовым каналам сервера
+        // подчищаем "зависших" (без heartbeat > 45 сек, см. пояснение в heartbeat()) по всем
+        // голосовым каналам сервера
         $channelIds = $server->channels()->where('type', 'voice')->pluck('id');
         VoiceParticipant::whereIn('channel_id', $channelIds)
-            ->where('last_seen_at', '<', now()->subSeconds(15))
+            ->where('last_seen_at', '<', now()->subSeconds(45))
             ->delete();
 
         $participants = VoiceParticipant::whereIn('channel_id', $channelIds)

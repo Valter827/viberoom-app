@@ -365,6 +365,16 @@ document.addEventListener('alpine:init', () => {
             }, 1000);
 
             this.heartbeatTimer = setInterval(() => this.heartbeat(), 5000);
+            // Фоновые/свёрнутые вкладки Chrome троттлит setInterval, из-за чего
+            // heartbeat может не доходить по 15-30+ сек подряд. Как только вкладка
+            // снова становится активной — сразу шлём heartbeat, не дожидаясь
+            // следующего (потенциально далёкого) тика таймера.
+            if (!this._visibilityHeartbeatBound) {
+                this._visibilityHeartbeatBound = true;
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible' && this.joined) this.heartbeat();
+                });
+            }
             // 1.5с было заметной задержкой при установке звонка и восстановлении связи
             // (ICE-кандидаты и offer/answer идут через БД, а не напрямую) — 500ms ощутимо
             // ускоряет и то, и другое, нагрузка на БД при этом копеечная (лёгкий SELECT).
