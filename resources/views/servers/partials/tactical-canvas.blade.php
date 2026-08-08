@@ -9,11 +9,11 @@
 
     {{-- Тулбар --}}
     <div class="h-12 flex items-center gap-2 px-3 border-b border-black/30 flex-shrink-0 flex-wrap">
-        <span class="text-sm font-semibold mr-2">🗺️ Тактический оверлей</span>
+        <span class="text-sm font-semibold mr-2 flex items-center gap-1.5"><x-icon name="map" class="w-4 h-4" /> Тактический оверлей</span>
 
         {{-- Выбор карты --}}
         <div class="flex items-center gap-1 bg-[#2B2D31] rounded-lg p-1">
-            @foreach (['blank' => '⬜ Пусто', 'dota' => 'Dota 2', 'cs' => 'CS', 'valorant' => 'Valorant', 'rust' => 'Rust'] as $key => $label)
+            @foreach (['blank' => 'Пусто', 'dota' => 'Dota 2', 'cs' => 'CS', 'valorant' => 'Valorant', 'rust' => 'Rust'] as $key => $label)
                 <button type="button" @click="tacticalSetMap('{{ $key }}')"
                         class="text-xs px-2 py-1 rounded"
                         :class="tacticalMapKey === '{{ $key }}' ? 'bg-[#5865F2] text-white' : 'text-gray-400 hover:text-white'">{{ $label }}</button>
@@ -22,9 +22,9 @@
 
         {{-- Инструмент --}}
         <div class="flex items-center gap-1 bg-[#2B2D31] rounded-lg p-1">
-            <button type="button" @click="tacticalTool = 'pen'" class="text-xs px-2 py-1 rounded" :class="tacticalTool === 'pen' ? 'bg-[#5865F2] text-white' : 'text-gray-400 hover:text-white'">✏️ Перо</button>
-            <button type="button" @click="tacticalTool = 'line'" class="text-xs px-2 py-1 rounded" :class="tacticalTool === 'line' ? 'bg-[#5865F2] text-white' : 'text-gray-400 hover:text-white'">📏 Линия</button>
-            <button type="button" @click="tacticalTool = 'arrow'" class="text-xs px-2 py-1 rounded" :class="tacticalTool === 'arrow' ? 'bg-[#5865F2] text-white' : 'text-gray-400 hover:text-white'">➡️ Стрелка</button>
+            <button type="button" @click="tacticalTool = 'pen'" class="text-xs px-2 py-1 rounded" :class="tacticalTool === 'pen' ? 'bg-[#5865F2] text-white' : 'text-gray-400 hover:text-white'"><x-icon name="pencil" class="w-3.5 h-3.5 inline -mt-0.5" /> Перо</button>
+            <button type="button" @click="tacticalTool = 'line'" class="text-xs px-2 py-1 rounded" :class="tacticalTool === 'line' ? 'bg-[#5865F2] text-white' : 'text-gray-400 hover:text-white'"><x-icon name="ruler" class="w-3.5 h-3.5 inline -mt-0.5" /> Линия</button>
+            <button type="button" @click="tacticalTool = 'arrow'" class="text-xs px-2 py-1 rounded" :class="tacticalTool === 'arrow' ? 'bg-[#5865F2] text-white' : 'text-gray-400 hover:text-white'"><x-icon name="arrow-right" class="w-3.5 h-3.5 inline -mt-0.5" /> Стрелка</button>
         </div>
 
         {{-- Цвет --}}
@@ -42,8 +42,8 @@
 
         <div class="flex-1"></div>
 
-        <button type="button" @click="tacticalClear()" class="text-xs text-red-400 hover:bg-red-500/10 px-2 py-1.5 rounded">🗑️ Очистить</button>
-        <button type="button" @click="showTactical = false; closeTactical()" class="icon-action !w-7 !h-7 text-sm" title="Закрыть">✕</button>
+        <button type="button" @click="tacticalClear()" class="text-xs text-red-400 hover:bg-red-500/10 px-2 py-1.5 rounded"><x-icon name="trash-2" class="w-3.5 h-3.5 inline -mt-0.5 mr-1" /> Очистить</button>
+        <button type="button" @click="showTactical = false; closeTactical()" class="icon-action !w-7 !h-7" title="Закрыть"><x-icon name="x" class="w-3.5 h-3.5" /></button>
     </div>
 
     {{-- Холст --}}

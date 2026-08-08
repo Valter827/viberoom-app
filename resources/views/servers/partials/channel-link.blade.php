@@ -58,7 +58,7 @@
        @contextmenu.prevent="openMenu($event)"
        class="flex items-center px-2 py-1.5 rounded text-sm text-gray-300 hover:bg-[#3a3c42] hover:text-white transition-colors
               {{ $isActive ? 'bg-[#404249] text-white' : '' }}">
-        <span class="mr-1.5 text-gray-500">{{ $channel->isVoice() ? '🔊' : '#' }}</span>
+        <span class="mr-1.5 text-gray-500 inline-flex"><x-icon :name="$channel->isVoice() ? 'volume-2' : 'hash'" class="w-3.5 h-3.5" /></span>
         <span class="truncate">{{ $channel->name }}</span>
         @if ($channel->isVoice())
             <template x-if="$store.voice.joined && $store.voice.channelId === {{ $channel->id }}">
@@ -82,20 +82,20 @@
          :style="`top: ${menuY}px; left: ${menuX}px;`"
          class="fixed z-50 w-60 bg-[#111214] rounded-lg shadow-2xl py-1.5 text-sm origin-top-left">
         <p class="px-3 py-1.5 text-xs font-semibold text-gray-500 truncate">
-            {{ $channel->isVoice() ? '🔊' : '#' }} {{ $channel->name }}
+            <x-icon :name="$channel->isVoice() ? 'volume-2' : 'hash'" class="w-3.5 h-3.5 inline -mt-0.5 mr-1" /> {{ $channel->name }}
         </p>
 
         <button type="button"
                 @click="navigator.clipboard.writeText(window.location.origin + '{{ route('channels.show', [$channel->server_id, $channel], false) }}'); $dispatch('notify', 'Ссылка на канал скопирована'); closeMenu()"
                 class="w-full text-left px-3 py-1.5 text-gray-300 hover:bg-[#5865F2] hover:text-white">
-            🔗 Скопировать ссылку на канал
+            <x-icon name="link" class="w-3.5 h-3.5 inline -mt-0.5 mr-1" /> Скопировать ссылку на канал
         </button>
 
         @if ($canManageChannel)
             <button type="button"
                     @click="startRename()"
                     class="w-full text-left px-3 py-1.5 text-gray-300 hover:bg-[#5865F2] hover:text-white">
-                ✏️ Изменить название
+                <x-icon name="pencil" class="w-3.5 h-3.5 inline -mt-0.5 mr-1" /> Изменить название
             </button>
 
             <div class="my-1 border-t border-black/30"></div>
@@ -105,7 +105,7 @@
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="w-full text-left px-3 py-1.5 text-red-400 hover:bg-red-500 hover:text-white">
-                    🗑️ Удалить канал
+                    <x-icon name="trash-2" class="w-3.5 h-3.5 inline -mt-0.5 mr-1" /> Удалить канал
                 </button>
             </form>
         @endif
@@ -141,7 +141,7 @@
                         <div class="relative">
                             <img :src="p.avatar_url" class="w-5 h-5 rounded-full transition-all duration-100"
                                  :class="($store.voice.channelId === {{ $channel->id }} && $store.voice.speaking[p.user_id]) ? 'ring-2 ring-emerald-500' : ''">
-                            <span x-show="p.muted" class="absolute -bottom-0.5 -right-0.5 text-[8px]">🔇</span>
+                            <span x-show="p.muted" class="absolute -bottom-0.5 -right-0.5 bg-[#2B2D31] rounded-full p-0.5"><x-icon name="mic-off" class="w-2.5 h-2.5" /></span>
                         </div>
                         <span class="text-xs text-gray-400 truncate" x-text="p.name"></span>
                     </div>

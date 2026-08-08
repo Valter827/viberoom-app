@@ -90,19 +90,19 @@
                 <button type="button"
                         @click="navigator.clipboard.writeText('{{ $s->invite_code }}'); $dispatch('notify', 'Код приглашения скопирован'); closeMenu()"
                         class="w-full text-left px-3 py-1.5 text-gray-300 hover:bg-[#5865F2] hover:text-white">
-                    📨 Пригласить людей
+                    <x-icon name="mail" class="w-4 h-4 inline -mt-0.5 mr-1.5" /> Пригласить людей
                 </button>
 
                 @if (in_array($sRole, ['owner', 'admin', 'moderator']))
                     <a href="{{ route('servers.edit', $s) }}" class="block px-3 py-1.5 text-gray-300 hover:bg-[#5865F2] hover:text-white">
-                        ⚙️ Настройки сервера
+                        <x-icon name="settings" class="w-4 h-4 inline -mt-0.5 mr-1.5" /> Настройки сервера
                     </a>
                 @endif
 
                 @if (isset($server) && $server->id === $s->id && in_array($sRole, ['owner', 'admin']))
                     <button type="button" @click="$dispatch('open-create-channel', null); closeMenu()"
                             class="w-full text-left px-3 py-1.5 text-gray-300 hover:bg-[#5865F2] hover:text-white">
-                        ➕ Создать канал
+                        <x-icon name="plus" class="w-4 h-4 inline -mt-0.5 mr-1.5" /> Создать канал
                     </button>
                 @endif
 
@@ -112,8 +112,8 @@
                      сам счётчик непрочитанных продолжает обновляться, как и в Discord. --}}
                 <button type="button" @click="toggleMute()"
                         class="w-full text-left px-3 py-1.5 text-gray-300 hover:bg-[#5865F2] hover:text-white">
-                    <span x-show="!muted">🔕 Заглушить сервер</span>
-                    <span x-show="muted" x-cloak>🔔 Включить звук сервера</span>
+                    <span x-show="!muted" class="inline-flex items-center gap-1.5"><x-icon name="bell-off" class="w-4 h-4" /> Заглушить сервер</span>
+                    <span x-show="muted" x-cloak class="inline-flex items-center gap-1.5"><x-icon name="bell" class="w-4 h-4" /> Включить звук сервера</span>
                 </button>
 
                 <div class="my-1 border-t border-black/30"></div>
@@ -121,7 +121,7 @@
                 <button type="button"
                         @click="navigator.clipboard.writeText('{{ $s->id }}'); $dispatch('notify', 'ID сервера скопирован'); closeMenu()"
                         class="w-full text-left px-3 py-1.5 text-gray-300 hover:bg-[#5865F2] hover:text-white">
-                    🆔 Скопировать ID сервера
+                    <x-icon name="clipboard" class="w-4 h-4 inline -mt-0.5 mr-1.5" /> Скопировать ID сервера
                 </button>
 
                 <div class="my-1 border-t border-black/30"></div>
@@ -132,7 +132,7 @@
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="w-full text-left px-3 py-1.5 text-red-400 hover:bg-red-500 hover:text-white">
-                            🗑️ Удалить сервер
+                            <x-icon name="trash-2" class="w-4 h-4 inline -mt-0.5 mr-1.5" /> Удалить сервер
                         </button>
                     </form>
                 @else
@@ -141,7 +141,7 @@
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="w-full text-left px-3 py-1.5 text-red-400 hover:bg-red-500 hover:text-white">
-                            🚪 Выйти из сервера
+                            <x-icon name="door-open" class="w-4 h-4 inline -mt-0.5 mr-1.5" /> Выйти из сервера
                         </button>
                     </form>
                 @endif

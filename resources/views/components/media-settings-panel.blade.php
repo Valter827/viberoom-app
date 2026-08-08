@@ -151,19 +151,19 @@
         <p class="text-xs font-semibold uppercase text-gray-500 px-2 mb-1">Медиа</p>
         <button @click="tab = 'voice'" class="w-full text-left px-2 py-1.5 rounded text-sm mb-0.5"
                 :class="tab === 'voice' ? 'bg-[#404249] text-white' : 'text-gray-400 hover:bg-[#35373c] hover:text-gray-200'">
-            🎙️ Голос
+            <x-icon name="mic" class="w-4 h-4 inline -mt-0.5 mr-1" /> Голос
         </button>
         <button @click="tab = 'video'" class="w-full text-left px-2 py-1.5 rounded text-sm mb-0.5"
                 :class="tab === 'video' ? 'bg-[#404249] text-white' : 'text-gray-400 hover:bg-[#35373c] hover:text-gray-200'">
-            📹 Видео
+            <x-icon name="video" class="w-4 h-4 inline -mt-0.5 mr-1" /> Видео
         </button>
         <button @click="tab = 'screen'" class="w-full text-left px-2 py-1.5 rounded text-sm mb-0.5"
                 :class="tab === 'screen' ? 'bg-[#404249] text-white' : 'text-gray-400 hover:bg-[#35373c] hover:text-gray-200'">
-            🖥️ Демонстрация экрана
+            <x-icon name="monitor" class="w-4 h-4 inline -mt-0.5 mr-1" /> Демонстрация экрана
         </button>
         <button @click="tab = 'sounds'" class="w-full text-left px-2 py-1.5 rounded text-sm mb-0.5"
                 :class="tab === 'sounds' ? 'bg-[#404249] text-white' : 'text-gray-400 hover:bg-[#35373c] hover:text-gray-200'">
-            🔔 Звуки
+            <x-icon name="bell" class="w-4 h-4 inline -mt-0.5 mr-1" /> Звуки
         </button>
     </nav>
 
@@ -203,7 +203,7 @@
                 <div>
                     <div class="flex items-center justify-between mb-1">
                         <label class="block text-xs font-semibold uppercase text-gray-400">Громкость звука</label>
-                        <button @click="testOutput()" class="text-[11px] text-gray-400 hover:text-white">🔊 Проверить</button>
+                        <button @click="testOutput()" class="text-[11px] text-gray-400 hover:text-white flex items-center gap-1"><x-icon name="volume-2" class="w-3.5 h-3.5" /> Проверить</button>
                     </div>
                     <input type="range" min="0" max="100" x-model="outputVolume" @input="saveOutputVolume()" class="w-full accent-[#5865F2]">
                 </div>
@@ -287,7 +287,7 @@
             </label>
 
             <p class="text-xs text-gray-500 mt-4">
-                Эти параметры применяются при следующем нажатии на 🖥️ в голосовом канале —
+                Эти параметры применяются при следующем нажатии на значок демонстрации экрана в голосовом канале —
                 браузер сам предложит выбрать окно, экран или вкладку для показа.
             </p>
         </div>

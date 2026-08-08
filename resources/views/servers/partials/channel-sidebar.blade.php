@@ -9,17 +9,17 @@
             @include('components.mentions-bell')
             @if (in_array($myRole, ['owner', 'admin', 'moderator']))
                 <button x-data @click="$dispatch('open-server-settings', { url: '{{ route('servers.edit', $server) }}' })"
-                        class="icon-action text-xs" title="Участники и настройки">👥</button>
+                        class="icon-action" title="Участники и настройки"><x-icon name="users" class="w-4 h-4" /></button>
             @endif
             @if (in_array($myRole, ['owner', 'admin']))
                 <button x-data @click="$dispatch('open-server-settings', { url: '{{ route('servers.edit', $server) }}' })"
-                        class="icon-action icon-gear text-xs" title="Настройки сервера">⚙️</button>
+                        class="icon-action icon-gear" title="Настройки сервера"><x-icon name="settings" class="w-4 h-4" /></button>
             @endif
             <button
                 x-data
                 @click="navigator.clipboard.writeText('{{ $server->invite_code }}'); $dispatch('notify', 'Код приглашения скопирован')"
-                class="icon-action text-xs" title="Скопировать код приглашения">
-                📋
+                class="icon-action" title="Скопировать код приглашения">
+                <x-icon name="clipboard" class="w-4 h-4" />
             </button>
         </div>
     </div>
@@ -93,12 +93,12 @@
                         <label class="flex-1 flex items-center gap-2 bg-[#1E1F22] rounded px-3 py-2 cursor-pointer"
                                :class="type === 'text' ? 'ring-1 ring-[#5865F2]' : ''">
                             <input type="radio" name="type" value="text" x-model="type" class="accent-[#5865F2]">
-                            <span class="text-sm">💬 Текстовый</span>
+                            <span class="text-sm flex items-center gap-1.5"><x-icon name="message-circle" class="w-4 h-4" /> Текстовый</span>
                         </label>
                         <label class="flex-1 flex items-center gap-2 bg-[#1E1F22] rounded px-3 py-2 cursor-pointer"
                                :class="type === 'voice' ? 'ring-1 ring-[#5865F2]' : ''">
                             <input type="radio" name="type" value="voice" x-model="type" class="accent-[#5865F2]">
-                            <span class="text-sm">🔊 Голосовой</span>
+                            <span class="text-sm flex items-center gap-1.5"><x-icon name="volume-2" class="w-4 h-4" /> Голосовой</span>
                         </label>
                     </div>
 
@@ -125,34 +125,36 @@
                 <span class="text-gray-400" x-text="'· ' + $store.voice.formattedDuration"></span>
             </div>
             <div class="flex items-center gap-2">
-                <button @click="$store.voice.leave()" class="text-gray-400 hover:text-red-400 text-sm" title="Отключиться">📞</button>
+                <button @click="$store.voice.leave()" class="text-gray-400 hover:text-red-400" title="Отключиться"><x-icon name="phone-off" class="w-4 h-4" /></button>
             </div>
         </div>
-        <p class="text-xs text-gray-400 mb-1.5 truncate">🔊 <span x-text="$store.voice.channelName"></span></p>
+        <p class="text-xs text-gray-400 mb-1.5 truncate flex items-center gap-1"><x-icon name="volume-2" class="w-3.5 h-3.5 shrink-0" /> <span x-text="$store.voice.channelName"></span></p>
         <div class="flex flex-wrap gap-1.5 relative" x-data="{ showQuickSettings: false }">
             <div class="flex-1 flex rounded overflow-hidden" :class="$store.voice.muted ? 'bg-red-600/80' : 'bg-[#3a3c42]'">
-                <button @click="$store.voice.toggleMute()" class="flex-1 text-xs py-1 hover:bg-black/10">
-                    <span x-text="$store.voice.muted ? '🔇' : '🎙️'"></span>
+                <button @click="$store.voice.toggleMute()" class="flex-1 py-1 hover:bg-black/10 flex items-center justify-center">
+                    <template x-if="$store.voice.muted"><x-icon name="mic-off" class="w-4 h-4" /></template>
+                    <template x-if="!$store.voice.muted"><x-icon name="mic" class="w-4 h-4" /></template>
                 </button>
                 <button @click="showQuickSettings = !showQuickSettings" class="px-1.5 hover:bg-black/10 border-l border-black/20 text-[10px]" title="Настройки голоса">▲</button>
             </div>
             <button @click="$store.voice.toggleDeafen()"
                     class="flex-1 text-xs rounded py-1"
                     :class="$store.voice.deafened ? 'bg-red-600/80' : 'bg-[#3a3c42] hover:bg-[#43454b]'">
-                <span x-text="$store.voice.deafened ? '🔕' : '🔔'"></span>
+                <template x-if="$store.voice.deafened"><x-icon name="bell-off" class="w-4 h-4 mx-auto" /></template>
+                <template x-if="!$store.voice.deafened"><x-icon name="bell" class="w-4 h-4 mx-auto" /></template>
             </button>
             <button @click="$store.voice.toggleCamera()" title="Камера"
-                    class="flex-1 text-xs rounded py-1"
+                    class="flex-1 rounded py-1 flex items-center justify-center"
                     :class="$store.voice.cameraEnabled ? 'bg-emerald-600/80' : 'bg-[#3a3c42] hover:bg-[#43454b]'">
-                📹
+                <x-icon name="video" class="w-4 h-4" />
             </button>
             <button @click="$store.voice.toggleScreenShare()" title="Демонстрация экрана"
-                    class="flex-1 text-xs rounded py-1"
+                    class="flex-1 rounded py-1 flex items-center justify-center"
                     :class="$store.voice.screenSharing ? 'bg-emerald-600/80' : 'bg-[#3a3c42] hover:bg-[#43454b]'">
-                🖥️
+                <x-icon name="monitor" class="w-4 h-4" />
             </button>
             <a :href="`/servers/${$store.voice.serverId}/channels/${$store.voice.channelId}`"
-               class="flex-1 text-xs rounded py-1 bg-[#3a3c42] hover:bg-[#43454b] text-center" title="Вернуться к голосовому каналу">↩️</a>
+               class="flex-1 rounded py-1 bg-[#3a3c42] hover:bg-[#43454b] flex items-center justify-center" title="Вернуться к голосовому каналу"><x-icon name="corner-up-right" class="w-3.5 h-3.5" /></a>
 
             {{-- Компактная всплывающая панель быстрых настроек голоса, как в Discord --}}
             <div x-show="showQuickSettings" x-cloak @click.outside="showQuickSettings = false"
@@ -174,7 +176,7 @@
             <p class="text-sm font-medium truncate">{{ Auth::user()->name }}</p>
             <p class="text-xs text-gray-400 truncate">{{ ucfirst(Auth::user()->status) }}</p>
         </div>
-        <button x-data @click="$dispatch('open-profile-settings')" class="icon-action icon-gear ml-auto text-sm" title="Настройки профиля">⚙️</button>
+        <button x-data @click="$dispatch('open-profile-settings')" class="icon-action icon-gear ml-auto" title="Настройки профиля"><x-icon name="settings" class="w-4 h-4" /></button>
     </div>
 </aside>
 

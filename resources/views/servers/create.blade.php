@@ -18,7 +18,7 @@
                             <img :src="preview" class="w-full h-full object-cover">
                         </template>
                         <template x-if="!preview">
-                            <span class="text-2xl text-gray-500 group-hover:text-[#5865F2]">📷</span>
+                            <x-icon name="camera" class="w-6 h-6 text-gray-500 group-hover:text-[#5865F2]" />
                         </template>
                     </div>
                     <input type="file" name="icon" accept="image/*" class="hidden"

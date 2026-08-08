@@ -28,7 +28,7 @@ class VoiceController extends Controller
      */
     public function join(Channel $channel): JsonResponse
     {
-        abort_unless($channel->isVoice(), 422, 'Это не голосовой канал.');
+        abort_unless($channel->isVoice() || $channel->isDm(), 422, 'В этом канале нельзя позвонить.');
         $this->authorizeMember($channel);
 
         $participant = VoiceParticipant::updateOrCreate(
@@ -316,8 +316,68 @@ class VoiceController extends Controller
             ->all();
     }
 
+    /**
+     * Позвонить в личный чат: не заходя в звонок самому, оповещаем собеседника
+     * сигналом 'ring', чтобы у него на экране всплыло окно входящего звонка —
+     * ровно так же, как offer/answer, но не привязано к уже установленному P2P.
+     * Пока собеседник не ответит (не вызовет /voice/join), звук ни у кого не идёт.
+     */
+    public function ring(Request $request, Channel $channel): JsonResponse
+    {
+        abort_unless($channel->isDm(), 422, 'Звонок доступен только в личных сообщениях.');
+        $this->authorizeMember($channel);
+
+        $video = $request->boolean('video');
+        $me = Auth::user();
+        $companion = $channel->otherParticipant($me->id);
+        abort_unless($companion, 404);
+
+        VoiceSignal::create([
+            'channel_id' => $channel->id,
+            'from_user_id' => $me->id,
+            'to_user_id' => $companion->id,
+            'type' => 'ring',
+            'payload' => json_encode(['video' => $video, 'caller_name' => $me->name, 'caller_avatar' => $me->avatar_url]),
+        ]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Отменить исходящий вызов, пока собеседник ещё не ответил (не зашёл в voice/join) —
+     * иначе у него навсегда останется висеть окно "входящий звонок".
+     */
+    public function cancelRing(Channel $channel): JsonResponse
+    {
+        abort_unless($channel->isDm(), 422);
+        $this->authorizeMember($channel);
+
+        $me = Auth::user();
+        $companion = $channel->otherParticipant($me->id);
+        abort_unless($companion, 404);
+
+        VoiceSignal::create([
+            'channel_id' => $channel->id,
+            'from_user_id' => $me->id,
+            'to_user_id' => $companion->id,
+            'type' => 'cancel',
+            'payload' => '{}',
+        ]);
+
+        return response()->json(['ok' => true]);
+    }
+
     private function authorizeMember(Channel $channel): void
     {
+        if ($channel->isDm()) {
+            abort_unless(
+                $channel->participants()->where('user_id', Auth::id())->exists(),
+                403
+            );
+
+            return;
+        }
+
         abort_unless(
             $channel->server->members()->where('user_id', Auth::id())->exists(),
             403

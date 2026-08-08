@@ -81,13 +81,13 @@
                     <button type="button" :disabled="busy"
                             @click="leaveOrDelete('{{ route('servers.destroy', $server) }}', 'Удалить сервер «{{ $server->name }}» без возможности восстановления?')"
                             class="w-full text-left px-2 py-1.5 rounded text-sm text-red-400 hover:bg-red-500/10 disabled:opacity-50">
-                        🗑️ Удалить сервер
+                        <x-icon name="trash-2" class="w-4 h-4 inline -mt-0.5 mr-1" /> Удалить сервер
                     </button>
                 @else
                     <button type="button" :disabled="busy"
                             @click="leaveOrDelete('{{ route('servers.leave', $server) }}', 'Выйти с сервера «{{ $server->name }}»?')"
                             class="w-full text-left px-2 py-1.5 rounded text-sm text-red-400 hover:bg-red-500/10 disabled:opacity-50">
-                        🚪 Покинуть сервер
+                        <x-icon name="door-open" class="w-4 h-4 inline -mt-0.5 mr-1" /> Покинуть сервер
                     </button>
                 @endif
             </div>
@@ -172,7 +172,7 @@
                                 <input type="checkbox" name="vibe_match_enabled" value="1" {{ $server->vibe_match_enabled ? 'checked' : '' }}
                                        class="mt-1 w-4 h-4 accent-[#5865F2]">
                                 <div>
-                                    <p class="text-sm font-semibold">🎯 Vibe Match — совпадение интересов</p>
+                                    <p class="text-sm font-semibold flex items-center gap-1.5"><x-icon name="target" class="w-4 h-4" /> Vibe Match — совпадение интересов</p>
                                     <p class="text-xs text-gray-400 mt-0.5">Подсвечивает в чате, если у нескольких участников в комнате сейчас совпадают интересы (например, оба ищут во что поиграть или слушают одно и то же).</p>
                                 </div>
                             </label>
@@ -181,7 +181,7 @@
                                 <input type="checkbox" name="party_finder_enabled" value="1" {{ $server->party_finder_enabled ? 'checked' : '' }}
                                        class="mt-1 w-4 h-4 accent-[#5865F2]">
                                 <div>
-                                    <p class="text-sm font-semibold">🎮 Party Finder — карточка пати</p>
+                                    <p class="text-sm font-semibold flex items-center gap-1.5"><x-icon name="gamepad-2" class="w-4 h-4" /> Party Finder — карточка пати</p>
                                     <p class="text-xs text-gray-400 mt-0.5">Позволяет создавать в чате интерактивные карточки сбора команды со слотами вместо сообщений "кто в катку?".</p>
                                 </div>
                             </label>
@@ -190,7 +190,7 @@
                                 <input type="checkbox" name="tactical_canvas_enabled" value="1" {{ $server->tactical_canvas_enabled ? 'checked' : '' }}
                                        class="mt-1 w-4 h-4 accent-[#5865F2]">
                                 <div>
-                                    <p class="text-sm font-semibold">🗺️ Tactical Canvas — тактический оверлей</p>
+                                    <p class="text-sm font-semibold flex items-center gap-1.5"><x-icon name="map" class="w-4 h-4" /> Tactical Canvas — тактический оверлей</p>
                                     <p class="text-xs text-gray-400 mt-0.5">Добавляет выдвижную мини-доску поверх чата с заготовками карт (Dota, CS, Valorant, Rust) для набросков тактики в реальном времени.</p>
                                 </div>
                             </label>
@@ -234,20 +234,20 @@
                                     </form>
                                     <form method="POST" action="{{ route('members.kick', [$server, $member]) }}" onsubmit="return confirm('Исключить {{ $member->name }} с сервера?')">
                                         @csrf @method('DELETE')
-                                        <button class="btn-lift text-xs text-gray-400 hover:text-white px-2 py-1 rounded" title="Кикнуть">👢</button>
+                                        <button class="btn-lift text-xs text-gray-400 hover:text-white px-2 py-1 rounded" title="Кикнуть"><x-icon name="footprints" class="w-4 h-4" /></button>
                                     </form>
                                     <form method="POST" action="{{ route('members.ban', [$server, $member]) }}" onsubmit="return confirm('Забанить {{ $member->name }} на этом сервере?')">
                                         @csrf
-                                        <button class="btn-lift text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded" title="Забанить">🔨</button>
+                                        <button class="btn-lift text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded" title="Забанить"><x-icon name="hammer" class="w-4 h-4" /></button>
                                     </form>
                                 @elseif (in_array($myRole, ['owner', 'admin', 'moderator']) && $role === 'member' && $member->id !== Auth::id())
                                     <form method="POST" action="{{ route('members.kick', [$server, $member]) }}" onsubmit="return confirm('Исключить {{ $member->name }} с сервера?')">
                                         @csrf @method('DELETE')
-                                        <button class="btn-lift text-xs text-gray-400 hover:text-white px-2 py-1 rounded" title="Кикнуть">👢</button>
+                                        <button class="btn-lift text-xs text-gray-400 hover:text-white px-2 py-1 rounded" title="Кикнуть"><x-icon name="footprints" class="w-4 h-4" /></button>
                                     </form>
                                     <form method="POST" action="{{ route('members.ban', [$server, $member]) }}" onsubmit="return confirm('Забанить {{ $member->name }} на этом сервере?')">
                                         @csrf
-                                        <button class="btn-lift text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded" title="Забанить">🔨</button>
+                                        <button class="btn-lift text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded" title="Забанить"><x-icon name="hammer" class="w-4 h-4" /></button>
                                     </form>
                                 @endif
                             </div>

@@ -20,29 +20,47 @@
                 @php $companion ??= $activeChannel->otherParticipant(Auth::id()); @endphp
                 <img src="{{ $companion?->avatar_url }}" class="w-6 h-6 rounded-full shrink-0">
                 <h2 class="font-semibold flex-1 truncate">{{ $companion?->name ?? 'Личный чат' }}</h2>
+
+                {{-- Звонок в ЛС: переиспользует ту же P2P WebRTC-инфраструктуру, что и голосовые
+                     каналы серверов (см. $store.voice в app.js) — здесь просто другой channelId. --}}
+                <div x-data="dmCallButtons({
+                        channelId: {{ $activeChannel->id }},
+                        companionName: {{ Js::from($companion?->name ?? 'Личный чат') }},
+                     })">
+                    <template x-if="!($store.voice.joined && $store.voice.channelId === channelId)">
+                        <div class="flex items-center gap-1">
+                            <button @click="call(false)" :disabled="calling" class="icon-action disabled:opacity-40" title="Аудиозвонок">
+                                <x-icon name="phone" class="w-4 h-4" />
+                            </button>
+                            <button @click="call(true)" :disabled="calling" class="icon-action disabled:opacity-40" title="Видеозвонок">
+                                <x-icon name="video" class="w-4 h-4" />
+                            </button>
+                        </div>
+                    </template>
+                </div>
             @else
                 <span class="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-gray-400 text-sm font-semibold shrink-0">#</span>
                 <h2 class="font-semibold flex-1 truncate">{{ $activeChannel->name }}</h2>
             @endif
 
             <button @click="showPinned = !showPinned; if (showPinned) loadPinned()"
-                    class="icon-action text-sm" title="Закреплённые сообщения">📌</button>
+                    class="icon-action" title="Закреплённые сообщения"><x-icon name="pin" class="w-4 h-4" /></button>
 
             <template x-if="vibeMatchEnabled">
                 <div class="relative">
                     <button @click="showVibeForm = !showVibeForm; if (showVibeForm) loadMyActivity()"
-                            class="icon-action text-sm" title="Что я сейчас делаю (Vibe Match)">🎯</button>
+                            class="icon-action" title="Что я сейчас делаю (Vibe Match)"><x-icon name="target" class="w-4 h-4" /></button>
                     <div x-show="showVibeForm" @click.outside="showVibeForm = false" x-cloak
                          class="absolute right-0 top-8 bg-[#1E1F22] rounded-lg shadow-2xl p-3 w-72 z-20"
                          x-transition:enter="ease-out duration-150" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
                         <p class="text-xs font-semibold uppercase text-gray-400 mb-2">Чем вы сейчас заняты?</p>
                         <div class="flex gap-1 mb-2">
                             <button type="button" @click="myActivity.category = 'game'"
-                                    class="flex-1 text-xs py-1.5 rounded" :class="myActivity.category === 'game' ? 'bg-[#5865F2] text-white' : 'bg-[#2B2D31] text-gray-400'">🎮 Играю</button>
+                                    class="flex-1 text-xs py-1.5 rounded flex items-center justify-center gap-1.5" :class="myActivity.category === 'game' ? 'bg-[#5865F2] text-white' : 'bg-[#2B2D31] text-gray-400'"><x-icon name="gamepad-2" class="w-3.5 h-3.5" /> Играю</button>
                             <button type="button" @click="myActivity.category = 'lfg'"
-                                    class="flex-1 text-xs py-1.5 rounded" :class="myActivity.category === 'lfg' ? 'bg-[#5865F2] text-white' : 'bg-[#2B2D31] text-gray-400'">🔎 Ищу компанию</button>
+                                    class="flex-1 text-xs py-1.5 rounded flex items-center justify-center gap-1.5" :class="myActivity.category === 'lfg' ? 'bg-[#5865F2] text-white' : 'bg-[#2B2D31] text-gray-400'"><x-icon name="search" class="w-3.5 h-3.5" /> Ищу компанию</button>
                             <button type="button" @click="myActivity.category = 'music'"
-                                    class="flex-1 text-xs py-1.5 rounded" :class="myActivity.category === 'music' ? 'bg-[#5865F2] text-white' : 'bg-[#2B2D31] text-gray-400'">🎧 Слушаю</button>
+                                    class="flex-1 text-xs py-1.5 rounded flex items-center justify-center gap-1.5" :class="myActivity.category === 'music' ? 'bg-[#5865F2] text-white' : 'bg-[#2B2D31] text-gray-400'"><x-icon name="headphones" class="w-3.5 h-3.5" /> Слушаю</button>
                         </div>
                         <input type="text" x-model="myActivity.label" maxlength="80"
                                placeholder="Например: Dota 2 или Interstellar OST"
@@ -57,7 +75,7 @@
 
             <template x-if="partyFinderEnabled">
                 <div class="relative">
-                    <button @click="showPartyForm = !showPartyForm" class="icon-action text-sm" title="Создать карточку пати">🎮</button>
+                    <button @click="showPartyForm = !showPartyForm" class="icon-action" title="Создать карточку пати"><x-icon name="gamepad-2" class="w-4 h-4" /></button>
                     <div x-show="showPartyForm" @click.outside="showPartyForm = false" x-cloak
                          class="absolute right-0 top-8 bg-[#1E1F22] rounded-lg shadow-2xl p-3 w-72 z-20"
                          x-transition:enter="ease-out duration-150" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
@@ -78,13 +96,13 @@
 
             <template x-if="tacticalCanvasEnabled">
                 <button @click="showTactical = !showTactical; showTactical ? openTactical() : closeTactical()"
-                        class="icon-action text-sm" title="Тактический оверлей" :class="showTactical ? 'bg-[#5865F2]/30' : ''">🗺️</button>
+                        class="icon-action" title="Тактический оверлей" :class="showTactical ? 'bg-[#5865F2]/30' : ''"><x-icon name="map" class="w-4 h-4" /></button>
             </template>
 
 
             <div class="relative">
                 <button @click="showSearch = !showSearch; $nextTick(() => showSearch && $refs.searchInput.focus())"
-                        class="icon-action text-sm" title="Поиск по сообщениям">🔍</button>
+                        class="icon-action" title="Поиск по сообщениям"><x-icon name="search" class="w-4 h-4" /></button>
                 <div x-show="showSearch" @click.outside="showSearch = false" x-cloak
                      class="absolute right-0 top-8 bg-[#1E1F22] rounded-lg shadow-2xl p-2 w-72 z-20"
                      x-transition:enter="ease-out duration-150" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
@@ -105,9 +123,13 @@
             </div>
         </div>
 
+        @if ($activeChannel->isDm())
+            @include('components.dm-call-bar')
+        @endif
+
         {{-- Панель закреплённых сообщений --}}
         <div x-show="showPinned" x-cloak class="border-b border-black/20 bg-[#2B2D31] max-h-48 overflow-y-auto px-4 py-2">
-            <p class="text-xs font-semibold uppercase text-gray-400 mb-1">📌 Закреплённые сообщения</p>
+            <p class="text-xs font-semibold uppercase text-gray-400 mb-1 flex items-center gap-1.5"><x-icon name="pin" class="w-3.5 h-3.5" /> Закреплённые сообщения</p>
             <template x-if="!pinnedMessages.length">
                 <p class="text-xs text-gray-500">Пока нет закреплённых сообщений.</p>
             </template>
@@ -204,7 +226,7 @@
                             {{-- Плашка "в ответ на" --}}
                             <template x-if="msg.parent">
                                 <div class="absolute -top-1 left-12 text-xs text-gray-500 flex items-center gap-1">
-                                    <span>↪</span>
+                                    <x-icon name="corner-up-right" class="w-3 h-3" />
                                     <span class="font-medium" x-text="msg.parent.user_name"></span>:
                                     <span class="truncate max-w-xs" x-text="msg.parent.content"></span>
                                 </div>
@@ -217,7 +239,7 @@
                             <span class="font-medium text-sm" x-text="msg.user.name"></span>
                             <span class="text-xs text-gray-500" x-text="formatTime(msg.created_at)"></span>
                             <span class="text-[10px] text-gray-500 bg-white/5 rounded px-1.5 py-0.5" x-show="msg.edited_at">изменено</span>
-                            <span class="text-[10px] text-yellow-400 bg-yellow-400/10 rounded px-1.5 py-0.5 flex items-center gap-1" x-show="msg.pinned">📌 закреплено</span>
+                            <span class="text-[10px] text-yellow-400 bg-yellow-400/10 rounded px-1.5 py-0.5 flex items-center gap-1" x-show="msg.pinned"><x-icon name="pin" class="w-3 h-3" /> закреплено</span>
                         </div>
 
                         {{-- Обычный вид сообщения --}}
@@ -229,7 +251,7 @@
                                 </template>
                                 <template x-if="msg.attachment_url && msg.attachment_type === 'file'">
                                     <a :href="msg.attachment_url" target="_blank"
-                                       class="mt-1 inline-block text-sm text-[#00a8fc] underline">📎 Скачать вложение</a>
+                                       class="mt-1 inline-flex items-center gap-1.5 text-sm text-[#00a8fc] underline"><x-icon name="paperclip" class="w-3.5 h-3.5" /> Скачать вложение</a>
                                 </template>
                             </div>
                         </template>
@@ -259,7 +281,7 @@
                     {{-- Плавающая панель действий при наведении --}}
                     <div class="absolute right-2 -top-3 hidden group-hover:flex bg-[#2B2D31] rounded-lg shadow-lg border border-black/30 overflow-hidden">
                         <div class="relative" x-data="{ open: false }">
-                            <button @click="open = !open" class="px-2 py-1 hover:bg-white/10 text-sm" title="Реакция">🙂</button>
+                            <button @click="open = !open" class="px-2 py-1 hover:bg-white/10" title="Реакция"><x-icon name="smile" class="w-4 h-4" /></button>
                             <div x-show="open" @click.outside="open = false" x-cloak
                                  class="absolute right-0 top-7 bg-[#1E1F22] p-1.5 rounded-lg shadow-xl grid grid-cols-6 gap-1 z-20 w-48">
                                 <template x-for="e in ['\u{1F44D}','\u2764\uFE0F','\u{1F602}','\u{1F525}','\u{1F389}','\u{1F62E}','\u{1F622}','\u{1F64F}','\u{1F44F}','\u{1F60E}','\u{1F4AF}','\u2705']" :key="e">
@@ -267,15 +289,15 @@
                                 </template>
                             </div>
                         </div>
-                        <button @click="replyTo = msg" class="px-2 py-1 hover:bg-white/10 text-sm" title="Ответить">↩️</button>
+                        <button @click="replyTo = msg" class="px-2 py-1 hover:bg-white/10" title="Ответить"><x-icon name="reply" class="w-4 h-4" /></button>
                         <template x-if="msg.can_edit">
-                            <button @click="editingId = msg.id; editingContent = msg.content" class="px-2 py-1 hover:bg-white/10 text-sm" title="Редактировать">✏️</button>
+                            <button @click="editingId = msg.id; editingContent = msg.content" class="px-2 py-1 hover:bg-white/10" title="Редактировать"><x-icon name="pencil" class="w-4 h-4" /></button>
                         </template>
                         <template x-if="msg.can_pin">
-                            <button @click="togglePin(msg)" class="px-2 py-1 hover:bg-white/10 text-sm" title="Закрепить">📌</button>
+                            <button @click="togglePin(msg)" class="px-2 py-1 hover:bg-white/10" title="Закрепить"><x-icon name="pin" class="w-4 h-4" /></button>
                         </template>
                         <template x-if="msg.can_delete">
-                            <button @click="deleteMessage(msg)" class="px-2 py-1 hover:bg-white/10 text-sm text-red-400" title="Удалить">🗑️</button>
+                            <button @click="deleteMessage(msg)" class="px-2 py-1 hover:bg-white/10 text-red-400" title="Удалить"><x-icon name="trash-2" class="w-4 h-4" /></button>
                         </template>
                     </div>
                         </div>
@@ -286,15 +308,15 @@
 
         {{-- Плашка "ответ на сообщение" над полем ввода --}}
         <div x-show="replyTo" x-cloak class="px-4 flex items-center gap-2 text-xs text-gray-400 flex-shrink-0">
-            <span>↪ Ответ пользователю <span class="font-medium" x-text="replyTo?.user?.name"></span></span>
-            <button @click="replyTo = null" class="icon-action !w-5 !h-5 text-xs">✕</button>
+            <span class="flex items-center gap-1"><x-icon name="corner-up-right" class="w-3.5 h-3.5" /> Ответ пользователю <span class="font-medium" x-text="replyTo?.user?.name"></span></span>
+            <button @click="replyTo = null" class="icon-action !w-5 !h-5"><x-icon name="x" class="w-3 h-3" /></button>
         </div>
 
         {{-- Форма отправки сообщения --}}
         <div class="px-4 pb-6 pt-2 flex-shrink-0">
             <form @submit.prevent="send" class="relative flex items-center bg-[#383A40] rounded-xl px-3 py-2.5 shadow-inner transition-shadow focus-within:ring-2 focus-within:ring-[#5865F2]/60">
                 <label class="icon-action mr-3" title="Прикрепить файл">
-                    📎
+                    <x-icon name="paperclip" class="w-4 h-4" />
                     <input type="file" class="hidden" @change="attachment = $event.target.files[0]">
                 </label>
 
@@ -307,7 +329,7 @@
 
                 {{-- Простой набор эмодзи-кнопок --}}
                 <div class="relative ml-2" x-data="{ open: false }">
-                    <button type="button" @click="open = !open" class="icon-action">🙂</button>
+                    <button type="button" @click="open = !open" class="icon-action"><x-icon name="smile" class="w-4 h-4" /></button>
                     <div x-show="open" @click.outside="open = false" x-cloak
                          class="absolute bottom-8 right-0 bg-[#2B2D31] p-2 rounded-lg shadow-2xl grid grid-cols-6 gap-1 z-10"
                          x-transition:enter="ease-out duration-150" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
@@ -326,8 +348,8 @@
                 </button>
             </form>
             <p class="text-xs text-gray-500 mt-1 flex items-center gap-1.5" x-show="attachment">
-                📎 <span x-text="attachment ? 'Прикреплено: ' + attachment.name : ''"></span>
-                <button type="button" @click="attachment = null" class="text-gray-500 hover:text-red-400 ml-1">✕</button>
+                <x-icon name="paperclip" class="w-3.5 h-3.5" /> <span x-text="attachment ? 'Прикреплено: ' + attachment.name : ''"></span>
+                <button type="button" @click="attachment = null" class="text-gray-500 hover:text-red-400 ml-1"><x-icon name="x" class="w-3.5 h-3.5" /></button>
             </p>
         </div>
 
@@ -336,7 +358,7 @@
         @endif
     @else
         <div class="flex-1 flex flex-col items-center justify-center text-center px-6">
-            <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center text-3xl mb-4">💬</div>
+            <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4"><x-icon name="message-circle" class="w-8 h-8 text-gray-500" /></div>
             <p class="text-gray-300 font-medium">На этом сервере пока нет каналов</p>
             <p class="text-sm text-gray-500 mt-1 max-w-xs">Создайте текстовый или голосовой канал, чтобы начать общение с участниками.</p>
         </div>

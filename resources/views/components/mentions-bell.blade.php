@@ -31,8 +31,8 @@
     x-init="load(); setInterval(() => load(), 15000)"
     class="relative"
 >
-    <button @click="open = !open; if (open) markRead()" class="relative text-gray-400 hover:text-white text-sm" title="Упоминания">
-        🔔
+    <button @click="open = !open; if (open) markRead()" class="relative text-gray-400 hover:text-white" title="Упоминания">
+        <x-icon name="bell" class="w-4 h-4" />
         <span x-show="unread > 0" x-text="unread > 9 ? '9+' : unread"
               class="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] rounded-full min-w-[16px] h-4 flex items-center justify-center px-1"></span>
     </button>

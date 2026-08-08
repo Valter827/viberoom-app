@@ -12,7 +12,7 @@
 
         <div class="flex-1 overflow-y-auto px-2 py-3">
             <a href="{{ route('friends.index') }}" class="block px-2 py-2 rounded bg-[#404249] text-sm font-medium flex items-center gap-2 mb-3">
-                <span>🧑‍🤝‍🧑</span> Друзья
+                <x-icon name="users" class="w-4 h-4" /> Друзья
             </a>
 
             @if ($dmChannels->isNotEmpty())
@@ -59,14 +59,14 @@
                 <p class="text-sm font-medium truncate">{{ Auth::user()->name }}</p>
                 <p class="text-xs text-gray-400 truncate">{{ ucfirst(Auth::user()->status) }}</p>
             </div>
-            <button x-data @click="$dispatch('open-profile-settings')" class="icon-action icon-gear ml-auto text-sm" title="Настройки профиля">⚙️</button>
+            <button x-data @click="$dispatch('open-profile-settings')" class="icon-action icon-gear ml-auto" title="Настройки профиля"><x-icon name="settings" class="w-4 h-4" /></button>
         </div>
     </aside>
 
     {{-- Основная область: друзья + заявки + форма добавления --}}
     <main class="flex-1 flex flex-col bg-[#313338] overflow-y-auto">
         <div class="h-12 flex items-center px-4 border-b border-black/20 flex-shrink-0 justify-between">
-            <span class="font-semibold">🧑‍🤝‍🧑 Друзья</span>
+            <span class="font-semibold flex items-center gap-2"><x-icon name="users" class="w-4 h-4" /> Друзья</span>
             @include('components.mentions-bell')
         </div>
 
@@ -108,11 +108,11 @@
                             </div>
                             <form method="POST" action="{{ route('friends.accept', $request->requester) }}">
                                 @csrf
-                                <button class="btn-lift w-9 h-9 rounded-full bg-[#3a3c42] hover:bg-emerald-600 flex items-center justify-center" title="Принять">✓</button>
+                                <button class="btn-lift w-9 h-9 rounded-full bg-[#3a3c42] hover:bg-emerald-600 flex items-center justify-center" title="Принять"><x-icon name="check" class="w-4 h-4" /></button>
                             </form>
                             <form method="POST" action="{{ route('friends.decline', $request->requester) }}">
                                 @csrf
-                                <button class="btn-lift w-9 h-9 rounded-full bg-[#3a3c42] hover:bg-red-600 flex items-center justify-center" title="Отклонить">✕</button>
+                                <button class="btn-lift w-9 h-9 rounded-full bg-[#3a3c42] hover:bg-red-600 flex items-center justify-center" title="Отклонить"><x-icon name="x" class="w-4 h-4" /></button>
                             </form>
                         </div>
                     @endforeach
@@ -158,7 +158,7 @@
                             </div>
                             <form method="POST" action="{{ route('dm.store', $friend) }}" onclick="event.stopPropagation()">
                                 @csrf
-                                <button class="btn-lift text-xs bg-[#3a3c42] hover:bg-[#5865F2] px-3 py-1.5 rounded font-medium whitespace-nowrap" title="Написать сообщение">💬 Написать</button>
+                                <button class="btn-lift text-xs bg-[#3a3c42] hover:bg-[#5865F2] px-3 py-1.5 rounded font-medium whitespace-nowrap flex items-center gap-1.5" title="Написать сообщение"><x-icon name="message-circle" class="w-3.5 h-3.5" /> Написать</button>
                             </form>
                             <form method="POST" action="{{ route('friends.destroy', $friend) }}" onclick="event.stopPropagation()">
                                 @csrf

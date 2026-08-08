@@ -824,6 +824,10 @@ document.addEventListener('alpine:init', () => {
         async handleSignal(sig) {
             const fromId = sig.from_user_id;
             if (sig.type === 'leave') { this.disconnectFrom(fromId); return; }
+            // 'ring'/'cancel' — уведомления о входящем звонке в ЛС, до начала P2P-звонка.
+            // Их обрабатывает отдельный компонент (см. dm-incoming-call.blade.php), сюда
+            // они долетают только как "эхо" уже после ответа/отмены — просто игнорируем.
+            if (sig.type === 'ring' || sig.type === 'cancel') return;
 
             if (!this.peers[fromId]) this.connectTo(fromId, false);
             const pc = this.peers[fromId];

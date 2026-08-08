@@ -74,7 +74,7 @@
                         <p class="text-sm text-gray-200 mb-2" x-text="user.member_since"></p>
 
                         <template x-if="user.mutual_servers > 0">
-                            <p class="text-xs text-gray-400">🔗 Общих серверов: <span x-text="user.mutual_servers"></span></p>
+                            <p class="text-xs text-gray-400 flex items-center gap-1"><x-icon name="link" class="w-3.5 h-3.5" /> Общих серверов: <span x-text="user.mutual_servers"></span></p>
                         </template>
                     </div>
 
@@ -109,7 +109,7 @@
                         </template>
                         <template x-if="user.relationship === 'friends'">
                             <div class="w-full bg-[#2b2d31] text-sm font-medium rounded py-2 text-center text-emerald-400">
-                                ✓ В друзьях
+                                <x-icon name="check" class="w-3.5 h-3.5 inline -mt-0.5" /> В друзьях
                             </div>
                         </template>
                     </div>

@@ -24,7 +24,7 @@
             <button @click="show = false"
                     class="btn-lift absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center text-lg"
                     title="Закрыть (Esc)">
-                ✕
+                <x-icon name="x" class="w-4 h-4" />
             </button>
             <iframe :src="show ? url : ''" class="w-full h-full border-0" title="Настройки сервера"></iframe>
         </div>

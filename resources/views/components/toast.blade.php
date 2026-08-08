@@ -40,7 +40,12 @@
             :class="toast.type === 'error' ? 'bg-red-500/95' : 'bg-[#23a55a]/95'"
             @click="remove(toast.id)"
         >
-            <span x-text="toast.type === 'error' ? '⚠️' : '✅'"></span>
+            <template x-if="toast.type === 'error'">
+                <x-icon name="triangle-alert" class="w-4 h-4 shrink-0" />
+            </template>
+            <template x-if="toast.type !== 'error'">
+                <x-icon name="circle-check" class="w-4 h-4 shrink-0" />
+            </template>
             <span x-text="toast.message"></span>
         </div>
     </template>

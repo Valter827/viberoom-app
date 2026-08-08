@@ -104,4 +104,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/channels/{channel}/voice/signals', [VoiceController::class, 'pollSignals'])->name('voice.signals');
     Route::get('/servers/{server}/voice-participants', [VoiceController::class, 'serverParticipants'])->name('voice.server-participants');
     Route::get('/voice/turn-credentials', [VoiceController::class, 'turnCredentials'])->name('voice.turn-credentials');
+    // --- Звонки в личных сообщениях (переиспользуют тот же voice/join и P2P-сигналинг выше) ---
+    Route::post('/channels/{channel}/voice/ring', [VoiceController::class, 'ring'])->name('voice.ring');
+    Route::post('/channels/{channel}/voice/cancel-ring', [VoiceController::class, 'cancelRing'])->name('voice.cancel-ring');
 });

@@ -114,7 +114,7 @@
 
     <div class="flex items-center justify-between mb-1">
         <label class="block text-[11px] font-semibold uppercase text-gray-400">Громкость звука</label>
-        <button @click="testOutput()" class="text-[11px] text-gray-400 hover:text-white">🔊 Проверить</button>
+        <button @click="testOutput()" class="text-[11px] text-gray-400 hover:text-white flex items-center gap-1"><x-icon name="volume-2" class="w-3.5 h-3.5" /> Проверить</button>
     </div>
     <input type="range" min="0" max="100" x-model="outputVolume" @input="saveOutputVolume()" class="w-full mb-3 accent-[#5865F2]">
 
@@ -124,6 +124,6 @@
     </label>
 
     <button @click="$dispatch('open-voice-settings')" class="group flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors">
-        <span class="inline-block transition-transform duration-300 group-hover:rotate-90">⚙️</span> Настройки голоса
+        <x-icon name="settings" class="w-3.5 h-3.5 inline-block transition-transform duration-300 group-hover:rotate-90" /> Настройки голоса
     </button>
 </div>

@@ -104,11 +104,11 @@
                 <p class="text-xs font-semibold uppercase text-gray-500 px-2 mb-1">Настройки</p>
                 <button @click="tab = 'voice'" class="w-full text-left px-2 py-1.5 rounded text-sm mb-0.5"
                         :class="tab === 'voice' ? 'bg-[#404249] text-white' : 'text-gray-400 hover:bg-[#35373c] hover:text-gray-200'">
-                    🎙️ Голос
+                    <x-icon name="mic" class="w-4 h-4 inline -mt-0.5 mr-1" /> Голос
                 </button>
                 <button @click="tab = 'sounds'" class="w-full text-left px-2 py-1.5 rounded text-sm mb-0.5"
                         :class="tab === 'sounds' ? 'bg-[#404249] text-white' : 'text-gray-400 hover:bg-[#35373c] hover:text-gray-200'">
-                    🔔 Звуки
+                    <x-icon name="bell" class="w-4 h-4 inline -mt-0.5 mr-1" /> Звуки
                 </button>
             </nav>
 
@@ -116,14 +116,14 @@
             <div class="flex-1 flex flex-col">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-black/20">
                     <h3 class="font-semibold text-lg" x-text="tab === 'voice' ? 'Голос' : 'Уведомления и звуки'"></h3>
-                    <button @click="close()" class="icon-action text-lg" title="Закрыть">✕</button>
+                    <button @click="close()" class="icon-action" title="Закрыть"><x-icon name="x" class="w-4 h-4" /></button>
                 </div>
 
                 <div class="flex-1 overflow-y-auto p-5">
 
                     {{-- Вкладка: Голос --}}
                     <div x-show="tab === 'voice'" x-cloak>
-                        <label class="block text-xs font-semibold uppercase text-gray-400 mb-1">🎙️ Микрофон</label>
+                        <label class="block text-xs font-semibold uppercase text-gray-400 mb-1 flex items-center gap-1"><x-icon name="mic" class="w-3.5 h-3.5" /> Микрофон</label>
                         <select x-model="selectedInput" @change="saveInput()" class="w-full bg-[#1E1F22] rounded px-3 py-2 text-sm outline-none mb-4">
                             <option value="">По умолчанию</option>
                             <template x-for="d in inputDevices" :key="d.deviceId">
@@ -131,7 +131,7 @@
                             </template>
                         </select>
 
-                        <label class="block text-xs font-semibold uppercase text-gray-400 mb-1">🔊 Динамики</label>
+                        <label class="block text-xs font-semibold uppercase text-gray-400 mb-1 flex items-center gap-1"><x-icon name="volume-2" class="w-3.5 h-3.5" /> Динамики</label>
                         <select x-model="selectedOutput" @change="saveOutput()" class="w-full bg-[#1E1F22] rounded px-3 py-2 text-sm outline-none mb-4">
                             <option value="">По умолчанию</option>
                             <template x-for="d in outputDevices" :key="d.deviceId">

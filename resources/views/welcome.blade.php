@@ -307,7 +307,7 @@
 
         <div class="max-w-6xl mx-auto mt-12 pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
             <span>© {{ date('Y') }} VibeRoom. Все права защищены.</span>
-            <span>Сделано с ❤ на Laravel</span>
+            <span class="inline-flex items-center gap-1">Сделано с <x-icon name="heart" class="w-3.5 h-3.5 text-red-400" /> на Laravel</span>
         </div>
     </footer>
 
